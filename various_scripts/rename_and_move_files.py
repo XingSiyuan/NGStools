@@ -3,7 +3,7 @@ import sys
 import os
 import re
 
-parser = argparse.ArgumentParser( description='Aligns fasta file and returns stats per aligned base')
+parser = argparse.ArgumentParser( description='Renames a bunch of files, creates dirs, and reorganizes files')
 parser.add_argument("-t", "--translatetable", help="translatetable", nargs=1)
 
 def rename():
