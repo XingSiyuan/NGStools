@@ -1,7 +1,9 @@
 very early, rough draft of new ABGC mapping pipeline script.
 
+The python script will create a shell script that contains various steps to process and map fastq data. The python scripts takes an individual id as argument (-1). It will also check if data is in Illumina or Sanger (offset +64 or +32) quality coding, and add translation to sanger if needed. For an example of the resulting shell script, see 'testscript1.sh'. 
+
 The script is designed to:
-- pull data from the repositories automatically based on individual ID, which can be passed as an option (-i).
+- pull data from the repositories
 - prepare data for mapping:
   * create temporary repository
   * trimming by sickle
