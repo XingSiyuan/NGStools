@@ -60,29 +60,31 @@ def prepare_temp_fq_files(abgsa,archive_dir,filenm,tempdir):
    print("gunzip -c "+abgsa+archive_dir+'/'+filenm+" | sed 's/ /#/' | pigz >"+tempdir+filenm)
 
 def trim(tempdir,file1,file2,offset):
-      print('# quality trimming of reads by sickle')
-      stub1=file1.replace('.gz','')
-      stub2=file2.replace('.gz','')
-      print('sickle pe -f '+tempdir+file1+' -r '+tempdir+file2+' -o '+tempdir+stub1+'.tr -p '+tempdir+stub2+'.tr -s '+tempdir+stub1+'.singles.tr -t '+offset)
-      print('pigz '+tempdir+stub1+'.tr')
-      print('pigz '+tempdir+stub2+'.tr')
-      if offset == 'illumina':
-         print('# since sequences have offset +64 we need to convert to sanger (offset +33)')
-         print('python convert_ill_to_sang.py '+tempdir+stub1+'.tr.gz | gzip -c >'+tempdir+'/'+stub1+'.tr.sa.gz')
-         print('python convert_ill_to_sang.py '+tempdir+stub2+'.tr.gz | gzip -c >'+tempdir+'/'+stub2+'.tr.sa.gz')
-         print('rm '+tempdir+stub1+'.tr.gz')
-         print('rm '+tempdir+stub2+'.tr.gz')
-         print('mv '+tempdir+stub1+'.tr.sa.gz '+tempdir+stub1+'.tr.gz')
-         print('mv '+tempdir+stub2+'.tr.sa.gz '+tempdir+stub2+'.tr.gz')
+   #print('#quality trimming of reads by sickle')
+   stub1=file1.replace('.gz','')
+   stub2=file2.replace('.gz','')
+   print('sickle pe -f '+tempdir+file1+' -r '+tempdir+file2+' -o '+tempdir+stub1+'.tr -p '+tempdir+stub2+'.tr -s '+tempdir+stub1+'.singles.tr -t '+offset)
+   print('pigz '+tempdir+stub1+'.tr')
+   print('pigz '+tempdir+stub2+'.tr')
+   if offset == 'illumina':
+      print('# since sequences have offset +64 we need to convert to sanger (offset +33)')
+      print('python convert_ill_to_sang.py '+tempdir+stub1+'.tr.gz | gzip -c >'+tempdir+'/'+stub1+'.tr.sa.gz')
+      print('python convert_ill_to_sang.py '+tempdir+stub2+'.tr.gz | gzip -c >'+tempdir+'/'+stub2+'.tr.sa.gz')
+      print('rm '+tempdir+stub1+'.tr.gz')
+      print('rm '+tempdir+stub2+'.tr.gz')
+      print('mv '+tempdir+stub1+'.tr.sa.gz '+tempdir+stub1+'.tr.gz')
+      print('mv '+tempdir+stub2+'.tr.sa.gz '+tempdir+stub2+'.tr.gz')
 
 def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,file1,file2,sample):
    print('# maping using the bwa-mem algorithm, including sorting of bam')
+   print("echo 'start mapping using BWA-mem algorithm'")
    stub1=file1.replace('.gz','')
    stub2=file2.replace('.gz','')
    #print('/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:1 '+ref+' '+tempdir+'/'+stub1+'.tr.gz '+tempdir+'/'+stub2+'.tr.gz | gzip -3 > aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam.gz')
    print(bwapath+'bwa mem -t 4 -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+ref+' '+tempdir+stub1+'.tr.gz '+tempdir+stub2+'.tr.gz >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam')
    print(samtoolspath+'samtools view -Shb -q 10 '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam')
    print('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam')
+   print("echo 'start sorting'")
    print(samtoolspath+'samtools sort '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted')
    print('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted.bam'
@@ -100,21 +102,67 @@ def merge_bams(samtoolspath, bams,sample,tempdir):
    else:
       print('#only one bam file, no need for merging')
       print('mv '+tempdir+bams[0]+' '+tempdir+sample+'_rh.bam')
+   return tempdir+sample+'_rh.bam'
 
 def make_new_header(bams, samtoolspath):
-    counter=1
-    for bam in bams:
-       if counter==1:
-          print(samtoolspath+'samtools view -H '+bam+' >newheader.txt')
-       else:
-          print(samtoolspath+'samtools view -H '+bam+' | grep @RG >>newheader.txt')
-       counter+=1
+   counter=1
+   for bam in bams:
+      if counter==1:
+         print(samtoolspath+'samtools view -H '+bam+' >newheader.txt')
+      else:
+         print(samtoolspath+'samtools view -H '+bam+' | grep @RG >>newheader.txt')
+      counter+=1
 
-def variant_calling_pileup(samtoolspath_v12,tempdir,sample,filterdepth, ref):
-   print('# old-school variant calling using the pileup algortithm')
-   print(samtoolspath_v12+'samtools view -u '+tempdir+sample+'_rh.bam | '+samtoolspath_v12+'samtools pileup -vcf '+ref+' - >vars-raw_'+tempdir+sample+'.txt')
+def dedup_picard(tempdir,sample,picardpath,bam):
+   # based on Qingyuan's pipleline
+   print("# dedup using Picard" )
+   bamstub=bam.replace('.bam','')
+   print("echo 'dedupping using picard MarkDuplicates")
+   print('java7 -Xmx4g -jar '+picardpath+'MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT='+bam+' OUTPUT='+bamstub+'.dedup_pi.bam METRICS_FILE='+bamstub+'.dedup.metrics')
+   print(samtoolspath+'samtools sort '+bamstub+'.dedup_pi.bam '+bamstub+'.dedup_pi.sorted')
+   print('rm '+bamstub+'.dedup_pi.bam')
+   print('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup.bam')
+   return bamstub+'.dedup.bam'
 
-   print(samtoolspath_v12+'samtools.pl varFilter -D'+filterdepth+' vars-raw_'+tempdir+sample+r".txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >vars-flt_"+tempdir+sample+'-final.txt')
+def dedup_samtools(tempdir,sample,bam):
+   bamstub=bam.replace('.bam','')
+   print("# dedup using samtools")
+   print("echo 'dedupping using samtools")
+   print('samtools dedup '+bamstub+'.bam '+bamstub+'.dedup_st.bam')
+   return bamstub+'dedup_st.bam'
+ 
+def re_align(tempdir,sample,bam,ref,GATKpath):
+   # based on Qingyuan's pipeline
+   bamstub=bam.replace('.bam','')
+   print("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals")
+
+   print("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam')
+   print(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted')
+   print('rm '+bamstub+'.reA.bam')
+   print('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam')
+   return bamstub+'.reA.bam'
+
+def recalibrate():
+   bamstub=bam.replace('.bam','')
+   print('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp')
+
+   print('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam')
+   return bamstub+'.recal.bam'
+
+def variant_calling_GATK():
+   bamstub=bam.replace('.bam','')
+   
+
+def variant_calling_mpileup(tempdir,bam,sample,ref,samtoolspath,bcftoolspath):
+   bamstub=bam.replace('.bam','')
+   print(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'bcftools/vcfutils.pl varFilter -D 20 -d 5 >'+bamstub+'.var.flt.vcf')
+
+def variant_calling_pileup(samtoolspath_v12,tempdir,sample,filterdepth, ref,bam):
+   bamstub=bam.replace('.bam','')
+   print('# old-school variant calling using the pileup algorithm')
+   print("echo 'old-school variant calling using the pileup algorithm'")
+   print(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -vcf '+ref+' - >'+bamstub+'_vars-raw.txt')
+   print(samtoolspath_v12+'samtools.pl varFilter -D'+filterdepth+' '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'_vars-flt_final.txt')
 
 def create_shell_script(sample,abgsa,ref):
    qsub_headers()
@@ -122,6 +170,8 @@ def create_shell_script(sample,abgsa,ref):
    bwapath='/opt/bwa/bwa-0.7.5a/'
    samtoolspath='/opt/samtools/samtools-0.1.19/'
    samtoolspath_v12='/opt/samtools/samtools-0.1.12/'
+   picardpath='/opt/picard/picard-tools-1.93/'
+   GATKpath='/opt/GATK/GATK2.6/'
    filterdepth=20
    print('mkdir '+tempdir)
    tempdir=tempdir+'/'
@@ -141,8 +191,8 @@ def create_shell_script(sample,abgsa,ref):
       trim(tempdir,file1,file2,offset)
       bams.append(map_bwa_mem(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,file1,file2,sample))
    print("#number of bams: "+str(len(bams)))   
-   merge_bams(samtoolspath, bams,sample,tempdir)
-   variant_calling_pileup(samtoolspath_v12,tempdir,sample,str(filterdepth),ref)
+   bam=merge_bams(samtoolspath, bams,sample,tempdir)
+   variant_calling_pileup(samtoolspath_v12,tempdir,sample,str(filterdepth),ref,bam)
 
 
 if __name__=="__main__":
