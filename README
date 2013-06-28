@@ -1,0 +1,25 @@
+very early, rough draft of new ABGC mapping pipeline script.
+
+The script is designed to:
+- pull data from the repositories automatically based on individual ID, which can be passed as an option (-i).
+- prepare data for mapping:
+  * create temporary repository
+  * trimming by sickle
+  * convert from Illumina fq to Sanger fq, if needed (automated detection)
+  * mapping using BWA mem (currently only option, more mapping options will follow)
+  * sort BAM files
+  * merge all BAM files of same individual, and reheader
+  * do old-school variant calling using samtools pileup
+
+TO DO:
+  * add filtering of BAM files based on mapping Q
+  * add local re-alignment using GATK
+  * do dedup (samtools or Picard?)
+  * do recallibration (optional)
+  * do variant calling (samtools mpileup)
+  * do variant calling (GATK UnifiedGenotyper)
+  * do intersection of variants by Samtools and GATK (maybe)
+  * do Variant Effect Predictor (VEP)
+
+Suggestion: re-organize variant calling subroutines to separate script.
+
