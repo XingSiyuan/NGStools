@@ -6,10 +6,10 @@ The script is designed to:
   * create temporary repository
   * trimming by sickle
   * convert from Illumina fq to Sanger fq, if needed (automated detection)
-  * mapping using BWA mem (currently only option, more mapping options will follow)
-  * sort BAM files
-  * merge all BAM files of same individual, and reheader
-  * do old-school variant calling using samtools pileup
+- mapping using BWA mem (currently only option, more mapping options will follow)
+- sort BAM files
+- merge all BAM files of same individual, and reheader
+- do old-school variant calling using samtools pileup
 
 TO DO:
   * add filtering of BAM files based on mapping Q
