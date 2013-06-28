@@ -7,7 +7,8 @@ import gzip
 
 parser = argparse.ArgumentParser( description='creates run file for automated trimming, mapping of fastq archives')
 parser.add_argument("-i", "--individual_name", help="name of individual to be mapped", nargs=1)
-parser.add_argument("-o", "--outfile", help="output file", nargs=1)
+parser.add_argument("-a", "--path_to_abgsa", help="/path/to/abgsa/", nargs=1)
+parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/ref.fa", nargs=1)
 
 def next_sequence_gzip(filename):
     try:
@@ -42,13 +43,13 @@ def check_illumina_or_sanger(file_name):
 
 def get_info_from_db(individual):
    output=[]
-   #print(snp_name)
    stmt_select = "select ABG_individual_id, archive_name, lane_names_orig from ABGSAschema_main where ABG_individual_id = '"+individual+"' order by lane_names_orig"
    cursor.execute(stmt_select)
    for row in cursor.fetchall():
       output.append([row[1],row[2]])
    for archive in output:
       yield archive
+
 def qsub_headers():
    print('#!/bin/bash')
    print('#$ -cwd')
@@ -113,12 +114,8 @@ def variant_calling_pileup(samtoolspath_v12,tempdir,sample,filterdepth, ref):
 
    print(samtoolspath_v12+'samtools.pl varFilter -D'+filterdepth+' vars-raw_'+tempdir+sample+r".txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >vars-flt_"+tempdir+sample+'-final.txt')
 
-def create_shell_script(sample):
+def create_shell_script(sample,abgsa,ref):
    qsub_headers()
-   #abgsa = '/srv/mds01/shared/Sus/ABGSA/';
-   abgsa = '/media/InternBkp1/repos/ABGSA/';
-   ref = '/media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa';
-   #allbam = 'samtools merge merged.bam';
    tempdir = 'tmp'+sample
    bwapath='/opt/bwa/bwa-0.7.5a/'
    samtoolspath='/opt/samtools/samtools-0.1.19/'
@@ -147,10 +144,12 @@ def create_shell_script(sample):
 
 
 if __name__=="__main__":
-  db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
-  cursor = db.cursor()
-  args = parser.parse_args()
-  individual=args.individual_name[0]
-  alignedfile=args.outfile[0]
-  create_shell_script(individual)
+   db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
+   cursor = db.cursor()
+   args = parser.parse_args()
+   individual=args.individual_name[0]
+   abgsa = args.path_to_abgsa[0]
+   #ref = '/media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa';
+   ref = args.path_to_reference_fasta[0]
+   create_shell_script(individual,abgsa,ref)
 
