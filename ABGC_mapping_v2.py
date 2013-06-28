@@ -9,8 +9,6 @@ parser = argparse.ArgumentParser( description='creates run file for automated tr
 parser.add_argument("-i", "--individual_name", help="name of individual to be mapped", nargs=1)
 parser.add_argument("-o", "--outfile", help="output file", nargs=1)
 
-   #db = mysql.connector.Connect(user='hapmapuser',password='hapmapuser@1234',host='localhost',database='pig_hapmap2')
-
 def next_sequence_gzip(filename):
     try:
         fileh = gzip.open(filename)
@@ -155,5 +153,4 @@ if __name__=="__main__":
   individual=args.individual_name[0]
   alignedfile=args.outfile[0]
   create_shell_script(individual)
-#sickle pe -f ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz -r ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz -o ABGSA0189_trim/test_R1.tr.fq -p ABGSA0189_trim/test_R2.tr.fq -s ABGSA0189_trim/singles/test.singles.tr.fq -t illumina
 
