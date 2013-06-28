@@ -80,7 +80,9 @@ def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,file1,file2,
    stub1=file1.replace('.gz','')
    stub2=file2.replace('.gz','')
    #print('/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:1 '+ref+' '+tempdir+'/'+stub1+'.tr.gz '+tempdir+'/'+stub2+'.tr.gz | gzip -3 > aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam.gz')
-   print(bwapath+'bwa mem -t 4 -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+ref+' '+tempdir+stub1+'.tr.gz '+tempdir+stub2+'.tr.gz | '+samtoolspath+'samtools view -Shb -q 10 - > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam')
+   print(bwapath+'bwa mem -t 4 -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+ref+' '+tempdir+stub1+'.tr.gz '+tempdir+stub2+'.tr.gz >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam')
+   print(samtoolspath+'samtools view -Shb -q 10 '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam')
+   print('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam')
    print(samtoolspath+'samtools sort '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted')
    print('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted.bam'

@@ -18,7 +18,9 @@ rm tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.t
 mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
 mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
 # maping using the bwa-mem algorithm, including sorting of bam
-/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '@RG\tID:ABGSA0189_1\tSM:LW22F08' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz | /opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 - > tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam
+/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '@RG\tID:ABGSA0189_1\tSM:LW22F08' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam
+/opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam > tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam
+rm tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam
 /opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sorted
 rm tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam
 # archive number 2: ABGSA0189
@@ -36,7 +38,9 @@ rm tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.t
 mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
 mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
 # maping using the bwa-mem algorithm, including sorting of bam
-/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '@RG\tID:ABGSA0189_2\tSM:LW22F08' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz | /opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 - > tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.bam
+/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -R '@RG\tID:ABGSA0189_2\tSM:LW22F08' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam
+/opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam > tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.bam
+rm tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam
 /opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.bam tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sorted
 rm tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.bam
 #number of bams: 2
