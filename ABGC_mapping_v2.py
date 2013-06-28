@@ -92,8 +92,8 @@ def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,file1,file2,
 def merge_bams(samtoolspath, bams,sample,tempdir):
    if len(bams)>1:
       print('#multiple bam files --> do merge')
-      make_new_header(bams,samtoolspath)
-      stub = samtoolspath+'samtools merge '+tempdir+'tmpmerged'+tempdir+sample+'.bam '
+      make_new_header(bams,samtoolspath,tempdir)
+      stub = samtoolspath+'samtools merge '+tempdir+'tmpmerged'+sample+'.bam '
       for bam in bams:
         stub = stub+bam+' '
       print(stub)
@@ -104,13 +104,13 @@ def merge_bams(samtoolspath, bams,sample,tempdir):
       print('mv '+tempdir+bams[0]+' '+tempdir+sample+'_rh.bam')
    return tempdir+sample+'_rh.bam'
 
-def make_new_header(bams, samtoolspath):
+def make_new_header(bams, samtoolspath,tempdir):
    counter=1
    for bam in bams:
       if counter==1:
-         print(samtoolspath+'samtools view -H '+bam+' >newheader.txt')
+         print(samtoolspath+'samtools view -H '+tempdir+bam+' >newheader.txt')
       else:
-         print(samtoolspath+'samtools view -H '+bam+' | grep @RG >>newheader.txt')
+         print(samtoolspath+'samtools view -H '+tempdir+bam+' | grep @RG >>newheader.txt')
       counter+=1
 
 def dedup_picard(tempdir,sample,picardpath,bam):
