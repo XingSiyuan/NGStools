@@ -24,6 +24,7 @@ parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/
 parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner", nargs=1)
 parser.add_argument("-m", "--mapper", help="mapping method < bwa-mem | bwa-aln | mosaik >", nargs=1)
 parser.add_argument("-d", "--dedup_method", help="dedup method < samtools | picard >", nargs=1)
+parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database < yes | no >", nargs=1)
 
 def next_sequence_gzip(filename):
     try:
@@ -58,12 +59,19 @@ def check_illumina_or_sanger(file_name):
 
 def get_info_from_db(individual):
    output=[]
-   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig from ABGSAschema_main where ABG_individual_id = '"+individual+"' order by lane_names_orig"
+   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main where ABG_individual_id = '"+individual+"' order by lane_names_orig"
    cursor.execute(stmt_select)
    for row in cursor.fetchall():
-      output.append([row[1],row[2]])
+      output.append([row[1],row[2],row[3]])
    for archive in output:
       yield archive
+
+def do_md5check(md5check,md5original,filenm):
+   if md5check == 'yes':
+      if md5original != os.popen('md5sum '+filenm).read().split()[0]:
+         raise SystemExit
+      else:
+         print('md5 ok: '+md5original)
 
 def qsub_headers():
    qf.write('#!/bin/bash'+'\n')
@@ -227,7 +235,7 @@ def variant_calling_pileup(samtoolspath_v12, ref,bam):
    qf.write(samtoolspath_v12+'misc/samtools.pl varFilter -D$VAR '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'.vars-flt_final.txt'+'\n')
    return bamstub+'.vars-flt_final.txt'
 
-def create_shell_script(sample,abgsa,ref,mapper,numthreads):
+def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    # print qsub header lines
    qsub_headers()
 
@@ -263,9 +271,11 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads):
       archive_dir=archive[0]
       seqfiles[1]=archive[1]
       offset=check_illumina_or_sanger(abgsa+archive_dir+'/'+seqfiles[1])
+      do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[1])
       seqfiles[1]=prepare_temp_fq_files(abgsa,archive_dir,seqfiles[1],tempdir)
       archive = next(archives)
       seqfiles[2]=archive[1]
+      do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[2])
       seqfiles[2]=prepare_temp_fq_files(abgsa,archive_dir,seqfiles[2],tempdir)
       seqfiles=trim(tempdir,seqfiles,offset)
       if mapper == 'bwa-mem':
@@ -312,11 +322,12 @@ if __name__=="__main__":
    numthreads=args.number_of_threads[0]
    ref = args.path_to_reference_fasta[0]
    dedup=args.dedup_method[0]
+   md5check=args.domd5check[0]
    
    # open qsub-file (qf)
    qf=open('run'+individual+'.sh','w')
    # invoke master subroutine
-   create_shell_script(individual,abgsa,ref,mapper,numthreads)
+   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check)
    qf.close()
 
    # optional submitting job
