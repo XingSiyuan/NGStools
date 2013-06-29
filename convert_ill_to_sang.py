@@ -1,3 +1,8 @@
+# Hendrik-Jan Megens, 29-06-2013
+# Animal Breeding & Genomics Centre
+# Wageningen University
+# NOTE: currently this is a python2.7 script
+# need to modify for python3 (utf-8 encoding)
 import sys
 import gzip
 def next_sequence_gzip(filename):
