@@ -166,6 +166,7 @@ def dedup_picard(samtoolspath,picardpath,bam):
    qf.write('rm '+bamstub+'.dedup_pi.bam'+'\n')
    qf.write('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup_pi.bam'+'\n')
    # consider removing original bam file
+   # Question: is it really necesary to re-sort? Couldn't find info. Investigate
    return bamstub+'.dedup_pi.bam'
 
 def dedup_samtools(samtoolspath,bam):
@@ -176,7 +177,7 @@ def dedup_samtools(samtoolspath,bam):
    # consider removing original bam file
    return bamstub+'.dedup_st.bam'
  
-def re_align(tempdir,sample,bam,ref,GATKpath):
+def re_align(samtoolspath,bam,ref,GATKpath):
    # based on Qingyuan's pipeline
    bamstub=bam.replace('.bam','')
    qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
@@ -186,9 +187,12 @@ def re_align(tempdir,sample,bam,ref,GATKpath):
    qf.write('rm '+bamstub+'.reA.bam'+'\n')
    qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
    # consider removing original bam file
+   # Question 1: is mate information retained?
+   # Do we need to add Picard's FixMateInformation?.jar ?
+   # Question 2: is het really necesary to re-sort? Couldn't find info. Investigate
    return bamstub+'.reA.bam'
 
-def recalibrate():
+def recalibrate(GATKpath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    bamstub=bam.replace('.bam','')
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
@@ -197,18 +201,21 @@ def recalibrate():
    # consider removing original bam file
    return bamstub+'.recal.bam'
 
-def variant_calling_GATK():
+def variant_calling_GATK(GATKpath,dbSNPfile,bam):
    bamstub=bam.replace('.bam','')
    # in progress   
+   qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50'+'\n')  
+   return bamstub+'.UG.raw.vcf'
 
-def variant_calling_mpileup(tempdir,bam,sample,ref,samtoolspath,maxfilterdepth,minfilterdepth):
+def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
    # based on Qingyuan's pipeline
    qf.write("# variant calling using the mpileup function of samtools"+'\n')
    bamstub=bam.replace('.bam','')
    bcftoolspath=samtoolspath+'bcftools/'
-   qf.write(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'bcftools/vcfutils.pl varFilter -D '+maxfilterdepth+' -d '+minfilterdepth+' >'+bamstub+'.var.flt.vcf'+'\n')
+   qf.write(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'bcftools/vcfutils.pl varFilter -D '+maxfilterdepth+' -d '+minfilterdepth+' >'+bamstub+'.var.mpileup.flt.vcf'+'\n')
+   return bamstub+'.var.mpileup.flt.vcf'
 
-def variant_calling_pileup(samtoolspath_v12,tempdir,sample, ref,bam):
+def variant_calling_pileup(samtoolspath_v12, ref,bam):
    # based on HJM's old Mosaik/BWA pipeline
    bamstub=bam.replace('.bam','')
    qf.write('# old-school variant calling using the pileup algorithm'+'\n')
@@ -217,7 +224,8 @@ def variant_calling_pileup(samtoolspath_v12,tempdir,sample, ref,bam):
    qf.write(r'VAR=`cat '+bamstub+'_vars-raw.txt'+r" | cut -f8 | head -100000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`"+'\n')
    qf.write('let VAR=2*VAR'+'\n')
    qf.write('echo "max depth is $VAR"'+'\n')
-   qf.write(samtoolspath_v12+'misc/samtools.pl varFilter -D$VAR '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'_vars-flt_final.txt'+'\n')
+   qf.write(samtoolspath_v12+'misc/samtools.pl varFilter -D$VAR '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'.vars-flt_final.txt'+'\n')
+   return bamstub+'.vars-flt_final.txt'
 
 def create_shell_script(sample,abgsa,ref,mapper,numthreads):
    # print qsub header lines
@@ -232,6 +240,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads):
    GATKpath='/opt/GATK/GATK2.6/'
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
+   dbSNPfile='/path/to/dbsnp/file.vcf'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -243,6 +252,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads):
 
    count=0
    bams=[]
+   varfiles=[]
 
    # preparing fq, trimming, mapping, in a loop,
    # per two gzipped fq files
@@ -268,16 +278,26 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads):
 
    # merge and reheader bam files  
    bam=merge_bams(samtoolspath, bams,sample,tempdir)
-   
+   print(bam)
+
    # further optimization of bam files
    if dedup == 'samtools':
       bam=dedup_samtools(samtoolspath,bam)
    elif dedup == 'picard':
       bam=dedup_picard(samtoolspath,picardpath,bam)
+   print(bam)
+   
+   bam=re_align(samtoolspath,bam,ref,GATKpath)
+   print(bam)
+
+   bam=recalibrate(GATKpath,dbSNPfile,ref,bam)
+   print(bam)
 
    # variant calling
-   variant_calling_pileup(samtoolspath_v12,tempdir,sample,ref,bam)
-   variant_calling_mpileup(tempdir,bam,sample,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth))
+   varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
+   varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
+   varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam))
+   print(varfiles)
 
 if __name__=="__main__":
    # initialize db cursor

@@ -54,12 +54,20 @@ java7 -Xmx4g -jar /opt/picard/picard-tools-1.93/MarkDuplicates.jar ASSUME_SORTED
 /opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/LW22F08_rh.dedup_pi.bam tmpLW22F08/LW22F08_rh.dedup_pi.sorted
 rm tmpLW22F08/LW22F08_rh.dedup_pi.bam
 mv tmpLW22F08/LW22F08_rh.dedup_pi.sorted.bam tmpLW22F08/LW22F08_rh.dedup_pi.bam
+java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T RealignerTargetCreator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_pi.bam -o tmpLW22F08/LW22F08_rh.dedup_pi.reA.intervals
+java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T IndelRealigner -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_pi.bam -targetIntervals tmpLW22F08/LW22F08_rh.dedup_pi.reA.intervals -o tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam
+/opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam tmpLW22F08/LW22F08_rh.dedup_pi.reA.sorted
+rm tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam
+mv tmpLW22F08/LW22F08_rh.dedup_pi.reA.sorted.bam tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam
+java -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam -knownSites /path/to/dbsnp/file.vcf -o tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.grp
+java -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T PrintReads -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_pi.reA.bam -BQSR tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.grp -o tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.bam
 # old-school variant calling using the pileup algorithm
 echo 'old-school variant calling using the pileup algorithm'
-/opt/samtools/samtools-0.1.12a/samtools view -u tmpLW22F08/LW22F08_rh.dedup_pi.bam | /opt/samtools/samtools-0.1.12a/samtools pileup -vcf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa - >tmpLW22F08/LW22F08_rh.dedup_pi_vars-raw.txt
-VAR=`cat tmpLW22F08/LW22F08_rh.dedup_pi_vars-raw.txt | cut -f8 | head -100000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`
+/opt/samtools/samtools-0.1.12a/samtools view -u tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.bam | /opt/samtools/samtools-0.1.12a/samtools pileup -vcf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa - >tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal_vars-raw.txt
+VAR=`cat tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal_vars-raw.txt | cut -f8 | head -100000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`
 let VAR=2*VAR
 echo "max depth is $VAR"
-/opt/samtools/samtools-0.1.12a/misc/samtools.pl varFilter -D$VAR tmpLW22F08/LW22F08_rh.dedup_pi_vars-raw.txt | awk '($3=="*"&&$6>=50)||($3!="*"&&$6>=20)' >tmpLW22F08/LW22F08_rh.dedup_pi_vars-flt_final.txt
+/opt/samtools/samtools-0.1.12a/misc/samtools.pl varFilter -D$VAR tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal_vars-raw.txt | awk '($3=="*"&&$6>=50)||($3!="*"&&$6>=20)' >tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.vars-flt_final.txt
 # variant calling using the mpileup function of samtools
-/opt/samtools/samtools-0.1.19/samtools mpileup -C50 -ugf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/LW22F08_rh.dedup_pi.bam | /opt/samtools/samtools-0.1.19/bcftools/bcftools view -bvcg -| /opt/samtools/samtools-0.1.19/bcftools/bcftools view - | perl /opt/samtools/samtools-0.1.19/bcftools/bcftools/vcfutils.pl varFilter -D 20 -d 4 >tmpLW22F08/LW22F08_rh.dedup_pi.var.flt.vcf
+/opt/samtools/samtools-0.1.19/samtools mpileup -C50 -ugf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.bam | /opt/samtools/samtools-0.1.19/bcftools/bcftools view -bvcg -| /opt/samtools/samtools-0.1.19/bcftools/bcftools view - | perl /opt/samtools/samtools-0.1.19/bcftools/bcftools/vcfutils.pl varFilter -D 20 -d 4 >tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.var.mpileup.flt.vcf
+java -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.bam --dbsnp /path/to/dbsnp/file.vcf --genotype_likelihoods_model BOTH -o tmpLW22F08/LW22F08_rh.dedup_pi.reA.recal.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50
