@@ -1,4 +1,6 @@
-very early, rough draft of new ABGC mapping pipeline script.
+Single-sample oriented version of the new ABGC mapping pipeline.
+Very early, rough draft - handle with care: many components are still to be validated.
+Note that access to sample database (MySQL) and access to primary data is required for the script to run!
 
 The python script will create a shell script that contains various steps to process and map fastq data. The python scripts takes an individual id as argument (-1). It will also check if data is in Illumina or Sanger (offset +64 or +32) quality coding, and add translation to sanger if needed. For an example of the resulting shell script, see 'testscript1.sh'. 
 

@@ -1,4 +1,6 @@
-# very early, rough draft of new ABGC mapping pipeline script.
+# single-sample oriented version of the new ABGC mapping pipeline.
+# very early, rough draft - handle with care: many components are still to be validated.
+# Note that access to sample database (MySQL) and access to primary data is required for the script to run! 
 # Hendrik-Jan Megens, 29-06-2013
 # Animal Breeding & Genomics Centre
 # Wageningen University
