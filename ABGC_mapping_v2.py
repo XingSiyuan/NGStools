@@ -74,7 +74,7 @@ def prepare_temp_fq_files(abgsa,archive_dir,filenm,tempdir):
    return tempdir+filenm
 
 def trim(tempdir,seqfiles,offset):
-   #qf.write('#quality trimming of reads by sickle')
+   qf.write('# quality trimming of reads by sickle'+'\n')
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
    qf.write('sickle pe -f '+seqfiles[1]+' -r '+seqfiles[2]+' -o '+stub1+'.tr -p '+stub2+'.tr -s '+stub1+'.singles.tr -l 45 -t '+offset+'\n')
@@ -94,6 +94,7 @@ def trim(tempdir,seqfiles,offset):
    return seqfiles
 
 def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads):
+   # BWA-mem is a new algorithm, we need to consider if this is suitable
    qf.write('# maping using the bwa-mem algorithm, including sorting of bam'+'\n')
    qf.write("echo 'start mapping using BWA-mem algorithm'"+'\n')
    qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
@@ -129,6 +130,7 @@ def map_Mosaik(mosaikref, mosaikjump, archive_dir, index,tempdir,seqfiles,sample
    return tempdir+'aln-'+sample+'-'+index+'_build10-sorted.bam'
 
 def merge_bams(samtoolspath, bams,sample,tempdir):
+   # based on old Mosaik/BWA alignment pipeline from HJM
    if len(bams)>1:
       qf.write('#multiple bam files --> do merge'+'\n')
       make_new_header(bams,samtoolspath,tempdir,sample)
@@ -160,7 +162,8 @@ def dedup_picard(samtoolspath,picardpath,bam):
    qf.write('java7 -Xmx4g -jar '+picardpath+'MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT='+bam+' OUTPUT='+bamstub+'.dedup_pi.bam METRICS_FILE='+bamstub+'.dedup.metrics'+'\n')
    qf.write(samtoolspath+'samtools sort '+bamstub+'.dedup_pi.bam '+bamstub+'.dedup_pi.sorted'+'\n')
    qf.write('rm '+bamstub+'.dedup_pi.bam'+'\n')
-   qf.write('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup.bam'+'\n')
+   qf.write('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup_pi.bam'+'\n')
+   # consider removing original bam file
    return bamstub+'.dedup_pi.bam'
 
 def dedup_samtools(samtoolspath,bam):
@@ -168,6 +171,7 @@ def dedup_samtools(samtoolspath,bam):
    qf.write("# dedup using samtools"+'\n')
    qf.write("echo 'dedupping using samtools'"+'\n')
    qf.write(samtoolspath+'samtools dedup '+bamstub+'.bam '+bamstub+'.dedup_st.bam'+'\n')
+   # consider removing original bam file
    return bamstub+'.dedup_st.bam'
  
 def re_align(tempdir,sample,bam,ref,GATKpath):
@@ -179,13 +183,16 @@ def re_align(tempdir,sample,bam,ref,GATKpath):
    qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n')
    qf.write('rm '+bamstub+'.reA.bam'+'\n')
    qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
+   # consider removing original bam file
    return bamstub+'.reA.bam'
 
 def recalibrate():
+   # based on Qingyuan's pipeline
    bamstub=bam.replace('.bam','')
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
 
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
+   # consider removing original bam file
    return bamstub+'.recal.bam'
 
 def variant_calling_GATK():
@@ -193,12 +200,14 @@ def variant_calling_GATK():
    # in progress   
 
 def variant_calling_mpileup(tempdir,bam,sample,ref,samtoolspath,maxfilterdepth,minfilterdepth):
+   # based on Qingyuan's pipeline
    qf.write("# variant calling using the mpileup function of samtools"+'\n')
    bamstub=bam.replace('.bam','')
    bcftoolspath=samtoolspath+'bcftools/'
    qf.write(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'bcftools/vcfutils.pl varFilter -D '+maxfilterdepth+' -d '+minfilterdepth+' >'+bamstub+'.var.flt.vcf'+'\n')
 
 def variant_calling_pileup(samtoolspath_v12,tempdir,sample, ref,bam):
+   # based on HJM's old Mosaik/BWA pipeline
    bamstub=bam.replace('.bam','')
    qf.write('# old-school variant calling using the pileup algorithm'+'\n')
    qf.write("echo 'old-school variant calling using the pileup algorithm'"+'\n')

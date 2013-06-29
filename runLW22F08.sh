@@ -6,6 +6,7 @@ mkdir tmpLW22F08
 # archive number 1: ABGSA0189
 gunzip -c /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | sed 's/ /#/' | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz
 gunzip -c /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | sed 's/ /#/' | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz
+# quality trimming of reads by sickle
 sickle pe -f tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz -r tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz -o tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr -p tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr -s tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.singles.tr -l 45 -t illumina
 pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr
 pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr
@@ -24,6 +25,7 @@ echo 'start mapping using BWA-aln algorithm'
 # archive number 2: ABGSA0189
 gunzip -c /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | sed 's/ /#/' | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz
 gunzip -c /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | sed 's/ /#/' | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz
+# quality trimming of reads by sickle
 sickle pe -f tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz -r tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz -o tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr -p tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr -s tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.singles.tr -l 45 -t illumina
 pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr
 pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr
@@ -51,7 +53,7 @@ echo 'dedupping using picard MarkDuplicates'
 java7 -Xmx4g -jar /opt/picard/picard-tools-1.93/MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT=tmpLW22F08/LW22F08_rh.bam OUTPUT=tmpLW22F08/LW22F08_rh.dedup_pi.bam METRICS_FILE=tmpLW22F08/LW22F08_rh.dedup.metrics
 /opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/LW22F08_rh.dedup_pi.bam tmpLW22F08/LW22F08_rh.dedup_pi.sorted
 rm tmpLW22F08/LW22F08_rh.dedup_pi.bam
-mv tmpLW22F08/LW22F08_rh.dedup_pi.sorted.bam tmpLW22F08/LW22F08_rh.dedup.bam
+mv tmpLW22F08/LW22F08_rh.dedup_pi.sorted.bam tmpLW22F08/LW22F08_rh.dedup_pi.bam
 # old-school variant calling using the pileup algorithm
 echo 'old-school variant calling using the pileup algorithm'
 /opt/samtools/samtools-0.1.12a/samtools view -u tmpLW22F08/LW22F08_rh.dedup_pi.bam | /opt/samtools/samtools-0.1.12a/samtools pileup -vcf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa - >tmpLW22F08/LW22F08_rh.dedup_pi_vars-raw.txt
