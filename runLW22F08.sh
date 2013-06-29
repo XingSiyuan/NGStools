@@ -46,8 +46,8 @@ echo 'start mapping using BWA-aln algorithm'
 /opt/samtools/samtools-0.1.19/samtools merge tmpLW22F08/tmpmergedLW22F08.bam tmpLW22F08/aln-ABGSA0189-LW22F08-1PE2.sorted tmpLW22F08/aln-ABGSA0189-LW22F08-2PE2.sorted 
 /opt/samtools/samtools-0.1.19/samtools reheader tmpLW22F08/newheader.txt tmpLW22F08/tmpmergedLW22F08.bam >tmpLW22F08/LW22F08_rh.bam
 rm tmpLW22F08/tmpmergedLW22F08.bam
-# dedup using Picard'
-echo 'dedupping using picard MarkDuplicates
+# dedup using Picard
+echo 'dedupping using picard MarkDuplicates'
 java7 -Xmx4g -jar /opt/picard/picard-tools-1.93/MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT=tmpLW22F08/LW22F08_rh.bam OUTPUT=tmpLW22F08/LW22F08_rh.dedup_pi.bam METRICS_FILE=tmpLW22F08/LW22F08_rh.dedup.metrics
 /opt/samtools/samtools-0.1.19/samtools sort tmpLW22F08/LW22F08_rh.dedup_pi.bam tmpLW22F08/LW22F08_rh.dedup_pi.sorted
 rm tmpLW22F08/LW22F08_rh.dedup_pi.bam

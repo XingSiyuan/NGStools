@@ -154,9 +154,9 @@ def make_new_header(bams, samtoolspath,tempdir,sample):
 
 def dedup_picard(samtoolspath,picardpath,bam):
    # based on Qingyuan's pipleline
-   qf.write("# dedup using Picard'" +'\n')
+   qf.write("# dedup using Picard" +'\n')
    bamstub=bam.replace('.bam','')
-   qf.write("echo 'dedupping using picard MarkDuplicates"+'\n')
+   qf.write("echo 'dedupping using picard MarkDuplicates'"+'\n')
    qf.write('java7 -Xmx4g -jar '+picardpath+'MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT='+bam+' OUTPUT='+bamstub+'.dedup_pi.bam METRICS_FILE='+bamstub+'.dedup.metrics'+'\n')
    qf.write(samtoolspath+'samtools sort '+bamstub+'.dedup_pi.bam '+bamstub+'.dedup_pi.sorted'+'\n')
    qf.write('rm '+bamstub+'.dedup_pi.bam'+'\n')
