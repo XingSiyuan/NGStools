@@ -23,7 +23,7 @@ def next_sequence_gzip(filename):
               lines.append(fileh.readline().decode('utf-8'))
 
            yield lines
-           line = fileh.readline()
+           line = fileh.readline()[:-1].decode('utf-8')
     finally:
         fileh.close()
 
@@ -98,19 +98,19 @@ def merge_bams(samtoolspath, bams,sample,tempdir):
         stub = stub+bam+' '
       print(stub)
       print(samtoolspath+'samtools reheader '+tempdir+'newheader.txt '+tempdir+'tmpmerged'+sample+'.bam >'+tempdir+sample+'_rh.bam')
-      print('rm tmpmerged'+sample+'.bam')
+      print('rm '+tempdir+'tmpmerged'+sample+'.bam')
    else:
       print('#only one bam file, no need for merging')
-      print('mv '+tempdir+bams[0]+' '+tempdir+sample+'_rh.bam')
+      print('mv '+bams[0]+' '+tempdir+sample+'_rh.bam')
    return tempdir+sample+'_rh.bam'
 
 def make_new_header(bams, samtoolspath,tempdir):
    counter=1
    for bam in bams:
       if counter==1:
-         print(samtoolspath+'samtools view -H '+tempdir+bam+' >newheader.txt')
+         print(samtoolspath+'samtools view -H '+bam+' >'+tempdir+'newheader.txt')
       else:
-         print(samtoolspath+'samtools view -H '+tempdir+bam+' | grep @RG >>newheader.txt')
+         print(samtoolspath+'samtools view -H '+bam+' | grep @RG >>'+tempdir+'newheader.txt')
       counter+=1
 
 def dedup_picard(tempdir,sample,picardpath,bam):
@@ -162,14 +162,14 @@ def variant_calling_pileup(samtoolspath_v12,tempdir,sample,filterdepth, ref,bam)
    print('# old-school variant calling using the pileup algorithm')
    print("echo 'old-school variant calling using the pileup algorithm'")
    print(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -vcf '+ref+' - >'+bamstub+'_vars-raw.txt')
-   print(samtoolspath_v12+'samtools.pl varFilter -D'+filterdepth+' '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'_vars-flt_final.txt')
+   print(samtoolspath_v12+'misc/samtools.pl varFilter -D'+filterdepth+' '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'_vars-flt_final.txt')
 
 def create_shell_script(sample,abgsa,ref):
    qsub_headers()
    tempdir = 'tmp'+sample
    bwapath='/opt/bwa/bwa-0.7.5a/'
    samtoolspath='/opt/samtools/samtools-0.1.19/'
-   samtoolspath_v12='/opt/samtools/samtools-0.1.12/'
+   samtoolspath_v12='/opt/samtools/samtools-0.1.12a/'
    picardpath='/opt/picard/picard-tools-1.93/'
    GATKpath='/opt/GATK/GATK2.6/'
    filterdepth=20
