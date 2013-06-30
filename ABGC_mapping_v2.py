@@ -107,7 +107,7 @@ def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sam
    # BWA-mem is a new algorithm, we need to consider if this is suitable
    qf.write('# maping using the bwa-mem algorithm, including sorting of bam'+'\n')
    qf.write("echo 'start mapping using BWA-mem algorithm'"+'\n')
-   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
+   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
    qf.write(samtoolspath+'samtools view -Shb -q 10 '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
    qf.write('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
    qf.write("echo 'start sorting'"+'\n')
@@ -123,7 +123,7 @@ def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sam
    qf.write("echo 'start mapping using BWA-aln algorithm'"+'\n')
    qf.write(bwapath+'bwa aln -n 0.07 -t '+str(numthreads)+' '+ref+' '+seqfiles[1]+'  >'+stub1+'.sai'+'\n')
    qf.write(bwapath+'bwa aln -n 0.07 -t '+str(numthreads)+' '+ref+' '+seqfiles[2]+'  >'+stub2+'.sai'+'\n')
-   qf.write(bwapath+'bwa sampe -P '+ref+r" -r '@RG\tID:"+archive_dir+'_'+index+r'\tSM:'+sample+r"' "+stub1+'.sai '+stub2+'.sai '+seqfiles[1]+' '+seqfiles[2]+' | '+samtoolspath+'samtools view -q 20 -Suh - | '+samtoolspath+'samtools sort -m 5000000000 - '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted'+'\n')
+   qf.write(bwapath+'bwa sampe -P '+ref+r" -r '@RG\tID:"+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+stub1+'.sai '+stub2+'.sai '+seqfiles[1]+' '+seqfiles[2]+' | '+samtoolspath+'samtools view -q 20 -Suh - | '+samtoolspath+'samtools sort -m 5000000000 - '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted'+'\n')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted.bam'
 
 def map_Mosaik(mosaikref, mosaikjump, archive_dir, index,tempdir,seqfiles,sample,numthreads):
@@ -159,13 +159,14 @@ def make_new_header(bams, samtoolspath,tempdir,sample):
    counter=1
    for bam in bams:
       if counter==1:
-         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/' >"+tempdir+'newheader.txt'+'\n')
+         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' >"+tempdir+'newheader.txt'+'\n')
       else:
-         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/' | grep @RG >>"+tempdir+'newheader.txt'+'\n')
+         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' | grep @RG >>"+tempdir+'newheader.txt'+'\n')
       counter+=1
 
 def dedup_picard(samtoolspath,picardpath,bam):
    # based on Qingyuan's pipleline
+   # currently does not work - too many issues, mostly regarding memory use
    qf.write("# dedup using Picard" +'\n')
    bamstub=bam.replace('.bam','')
    qf.write("echo 'dedupping using picard MarkDuplicates'"+'\n')
@@ -194,10 +195,10 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
 
    qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
-   qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n')
-   qf.write('rm '+bamstub+'.reA.bam'+'\n')
-   qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
-   #qf.write(samtoolspath+'samtools index '+bamstub+'.reA.bam'+'\n') # re-indexing neede?
+   #qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n') # re-sorting does not seem needed?
+   #qf.write('rm '+bamstub+'.reA.bam'+'\n')
+   #qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
+   #qf.write(samtoolspath+'samtools index '+bamstub+'.reA.bam'+'\n') # re-indexing needed?
    # consider removing original bam file
    # Question 1: is mate information retained?
    # Do we need to add Picard's FixMateInformation?.jar ?
@@ -208,8 +209,8 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    qf.write('# Recalibration of BAM using GATK-BaseRecalibrator+PrintReads'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
-   qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
    #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
    return bamstub+'.recal.bam'
@@ -218,7 +219,7 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam):
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
-   qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50'+'\n')  
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50'+'\n')  
    return bamstub+'.UG.raw.vcf'
 
 def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
