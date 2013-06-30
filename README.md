@@ -35,5 +35,7 @@ To do:
   * filtering of BAM files based on mapping Q (current min mapping Q of 10 in BWA-mem, need to evaluate)
   * intersection of variants by Samtools and GATK (maybe)
   * Variant Effect Predictor (VEP)
-
+  * Automated checking against 60K db
+  * better reporting of BAM (filesize, checksums, coverage, etc) and variant stats (numsnps etc)
+    - consider reporting immediately back to MySQL db
 
