@@ -181,7 +181,7 @@ def dedup_samtools(samtoolspath,bam):
    bamstub=bam.replace('.bam','')
    qf.write("# dedup using samtools"+'\n')
    qf.write("echo 'dedupping using samtools'"+'\n')
-   qf.write(samtoolspath+'samtools dedup '+bamstub+'.bam '+bamstub+'.dedup_st.bam'+'\n')
+   qf.write(samtoolspath+'samtools rmdup '+bamstub+'.bam '+bamstub+'.dedup_st.bam'+'\n')
    # consider removing original bam file
    return bamstub+'.dedup_st.bam'
  
