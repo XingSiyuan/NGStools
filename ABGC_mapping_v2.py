@@ -80,7 +80,7 @@ def qsub_headers():
    qf.write('#$ -l h_vmem=10G'+'\n')
 
 def prepare_temp_fq_files(abgsa,archive_dir,filenm,tempdir):
-   qf.write("gunzip -c "+abgsa+archive_dir+'/'+filenm+" | sed 's/ /#/' | pigz >"+tempdir+filenm+'\n')
+   qf.write("python fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+filenm+'\n')
    return tempdir+filenm
 
 def trim(tempdir,seqfiles,offset):
