@@ -21,10 +21,10 @@ parser = argparse.ArgumentParser( description='creates run file for automated tr
 parser.add_argument("-i", "--individual_name", help="name of individual to be mapped", nargs=1)
 parser.add_argument("-a", "--path_to_abgsa", help="/path/to/abgsa/", nargs=1)
 parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/ref.fa", nargs=1)
-parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner", nargs=1)
-parser.add_argument("-m", "--mapper", help="mapping method < bwa-mem | bwa-aln | mosaik >", nargs=1)
-parser.add_argument("-d", "--dedup_method", help="dedup method < samtools | picard >", nargs=1)
-parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database < yes | no >", nargs=1)
+parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner",type=int, default=1)
+parser.add_argument("-m", "--mapper", help="mapping method < bwa-mem | bwa-aln | mosaik >", type=str, choices=['bwa-mem','bwa-aln','mosaik'],default='bwa-mem')
+parser.add_argument("-d", "--dedup_method", help="dedup method < samtools | picard >", type=str, default='samtools')
+parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 
 def next_sequence_gzip(filename):
     try:
@@ -67,7 +67,7 @@ def get_info_from_db(individual):
       yield archive
 
 def do_md5check(md5check,md5original,filenm):
-   if md5check == 'yes':
+   if md5check:
       if md5original != os.popen('md5sum '+filenm).read().split()[0]:
          raise SystemExit
       else:
@@ -318,12 +318,15 @@ if __name__=="__main__":
    args = parser.parse_args()
    individual=args.individual_name[0]
    abgsa = args.path_to_abgsa[0]
-   mapper=args.mapper[0]
-   numthreads=args.number_of_threads[0]
+   mapper=args.mapper
+   numthreads=args.number_of_threads
    ref = args.path_to_reference_fasta[0]
-   dedup=args.dedup_method[0]
-   md5check=args.domd5check[0]
-   
+   dedup=args.dedup_method
+   md5check=args.domd5check
+   print('md5check: '+str(md5check))
+   print('mapper: '+mapper)
+   print('dedupper: '+dedup) 
+
    # open qsub-file (qf)
    qf=open('run'+individual+'.sh','w')
    # invoke master subroutine
