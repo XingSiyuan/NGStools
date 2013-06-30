@@ -152,7 +152,8 @@ def merge_bams(samtoolspath, bams,sample,tempdir):
       qf.write('rm '+tempdir+'tmpmerged'+sample+'.bam'+'\n')
    else:
       qf.write('#only one bam file, no need for merging'+'\n')
-      qf.write('mv '+bams[0]+' '+tempdir+sample+'_rh.bam'+'\n')
+      qf.write(samtoolspath+'samtools reheader '+tempdir+'newheader.txt '+bam[0]+' >'+tempdir+sample+'_rh.bam'+'\n')
+   qf.write(samtoolspath+'samtools index '+tempdir+sample+'_rh.bam'+'\n')
    return tempdir+sample+'_rh.bam'
 
 def make_new_header(bams, samtoolspath,tempdir,sample):
@@ -170,7 +171,7 @@ def dedup_picard(samtoolspath,picardpath,bam):
    qf.write("# dedup using Picard" +'\n')
    bamstub=bam.replace('.bam','')
    qf.write("echo 'dedupping using picard MarkDuplicates'"+'\n')
-   qf.write('java7 -Xmx4g -jar '+picardpath+'MarkDuplicates.jar ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT='+bam+' OUTPUT='+bamstub+'.dedup_pi.bam METRICS_FILE='+bamstub+'.dedup.metrics'+'\n')
+   qf.write('java7 -Xmx4g -jar '+picardpath+'MarkDuplicates.jar MAX_RECORDS_IN_RAM=5000000 ASSUME_SORTED=true REMOVE_DUPLICATES=true INPUT='+bam+' OUTPUT='+bamstub+'.dedup_pi.bam METRICS_FILE='+bamstub+'.dedup.metrics'+'\n')
    qf.write(samtoolspath+'samtools sort '+bamstub+'.dedup_pi.bam '+bamstub+'.dedup_pi.sorted'+'\n')
    qf.write('rm '+bamstub+'.dedup_pi.bam'+'\n')
    qf.write('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup_pi.bam'+'\n')
@@ -268,9 +269,13 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    count=0
    bams=[]
    varfiles=[]
-
+   logfile=tempdir+sample+'.log' 
+   firstline=r'DATE=`date`; echo "++++++++++++++++++++++++++++" >>'+logfile+'; '
    # preparing fq, trimming, mapping, in a loop,
    # per two gzipped fq files
+   # do some logging
+   qf.write(firstline+"echo 'starting time: '$DATE  >>"+logfile+'\n')
+
    for archive in archives:
       seqfiles={}
       count+=1
@@ -285,17 +290,27 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[2])
       seqfiles[2]=prepare_temp_fq_files(abgsa,archive_dir,seqfiles[2],tempdir)
       seqfiles=trim(tempdir,seqfiles,offset)
+      # report when mapping starts
+      qf.write(firstline+"echo 'starting "+mapper+" mapping of "+sample+" archive "+str(count)+": '$DATE  >>"+logfile+'\n')
       if mapper == 'bwa-mem':
          bams.append(map_bwa_mem(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads))
       elif mapper == 'bwa-aln':
          bams.append(map_bwa_aln(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads))
       elif mapper == 'mosaik':  
          bams.append(map_Mosaik(mosaikref, mosaikjump, archive_dir,str(count),tempdir,seqfiles,sample,numthreads))
+
+      # report back when finished mapping, and how large file size is
+      qf.write(firstline+"echo 'finished, produced BAM file "+bams[count-1]+" archive "+str(count)+": '$DATE  >>"+logfile+'\n')
+      qf.write(r'FSIZE=`stat --printf="%s" '+bams[count-1]+'`; echo "size of file '+bams[count-1]+' is "$FSIZE  >>'+logfile+'\n')
+
    qf.write("#number of bams: "+str(len(bams))+'\n') 
 
    # merge and reheader bam files  
    bam=merge_bams(samtoolspath, bams,sample,tempdir)
    print(bam)
+   # report back when finished merging, and how large file size is
+   qf.write(firstline+"echo 'finished merging, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
 
    # further optimization of bam files
    if dedup == 'samtools':
@@ -303,17 +318,31 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    elif dedup == 'picard':
       bam=dedup_picard(samtoolspath,picardpath,bam)
    print(bam)
-   
+   # report back when finished de-dupping, and how large file size is
+   qf.write(firstline+"echo 'finished dedupping using "+dedup+", produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+
    bam=re_align(samtoolspath,bam,ref,GATKpath)
    print(bam)
 
+   # report back when finished re-aligning, and how large file size is
+   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+
    bam=recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam)
    print(bam)
+
+   # report back when finished recalibrating, and how large file size is
+   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
 
    # variant calling
    varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
    varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
    varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam))
+
+   # report back when finished variant calling
+   qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
    print(varfiles)
 
 if __name__=="__main__":
