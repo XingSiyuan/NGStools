@@ -173,6 +173,7 @@ def dedup_picard(samtoolspath,picardpath,bam):
    qf.write(samtoolspath+'samtools sort '+bamstub+'.dedup_pi.bam '+bamstub+'.dedup_pi.sorted'+'\n')
    qf.write('rm '+bamstub+'.dedup_pi.bam'+'\n')
    qf.write('mv '+bamstub+'.dedup_pi.sorted.bam '+bamstub+'.dedup_pi.bam'+'\n')
+   qf.write(samtoolspath+'samtools index '+bamstub+'.dedup_pi.bam'+'\n')
    # consider removing original bam file
    # Question: is it really necesary to re-sort? Couldn't find info. Investigate
    return bamstub+'.dedup_pi.bam'
@@ -182,6 +183,7 @@ def dedup_samtools(samtoolspath,bam):
    qf.write("# dedup using samtools"+'\n')
    qf.write("echo 'dedupping using samtools'"+'\n')
    qf.write(samtoolspath+'samtools rmdup '+bamstub+'.bam '+bamstub+'.dedup_st.bam'+'\n')
+   qf.write(samtoolspath+'samtools index '+bamstub+'.dedup_st.bam'+'\n')
    # consider removing original bam file
    return bamstub+'.dedup_st.bam'
  
@@ -194,19 +196,20 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n')
    qf.write('rm '+bamstub+'.reA.bam'+'\n')
    qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
+   qf.write(samtoolspath+'samtools index '+bamstub+'.reA.bam'+'\n')
    # consider removing original bam file
    # Question 1: is mate information retained?
    # Do we need to add Picard's FixMateInformation?.jar ?
-   # Question 2: is het really necesary to re-sort? Couldn't find info. Investigate
+   # Question 2: is het really necesary to re-sort? Maybe only re-index? Couldn't find info. Investigate
    return bamstub+'.reA.bam'
 
 def recalibrate(GATKpath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    bamstub=bam.replace('.bam','')
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
-
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
+   qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n')
    return bamstub+'.recal.bam'
 
 def variant_calling_GATK(GATKpath,dbSNPfile,bam):
