@@ -22,8 +22,8 @@ parser.add_argument("-i", "--individual_name", help="name of individual to be ma
 parser.add_argument("-a", "--path_to_abgsa", help="/path/to/abgsa/", nargs=1)
 parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/ref.fa", nargs=1)
 parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner",type=int, default=1)
-parser.add_argument("-m", "--mapper", help="mapping method < bwa-mem | bwa-aln | mosaik >", type=str, choices=['bwa-mem','bwa-aln','mosaik'],default='bwa-mem')
-parser.add_argument("-d", "--dedup_method", help="dedup method < samtools | picard >", type=str, default='samtools')
+parser.add_argument("-m", "--mapper", help="mapping method", type=str, choices=['bwa-mem','bwa-aln','mosaik'], default='bwa-mem')
+parser.add_argument("-d", "--dedup_method", help="dedup method", type=str, choices=['samtools','picard'], default='samtools')
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 
 def next_sequence_gzip(filename):
