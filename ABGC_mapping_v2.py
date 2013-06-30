@@ -189,6 +189,7 @@ def dedup_samtools(samtoolspath,bam):
  
 def re_align(samtoolspath,bam,ref,GATKpath):
    # based on Qingyuan's pipeline
+   qf.write('# re-alignment using GATK-RealignmentTargetCreator+IndelRealigner'+'\n')
    bamstub=bam.replace('.bam','')
    qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
 
@@ -196,23 +197,25 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n')
    qf.write('rm '+bamstub+'.reA.bam'+'\n')
    qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
-   qf.write(samtoolspath+'samtools index '+bamstub+'.reA.bam'+'\n')
+   #qf.write(samtoolspath+'samtools index '+bamstub+'.reA.bam'+'\n') # re-indexing neede?
    # consider removing original bam file
    # Question 1: is mate information retained?
    # Do we need to add Picard's FixMateInformation?.jar ?
    # Question 2: is het really necesary to re-sort? Maybe only re-index? Couldn't find info. Investigate
    return bamstub+'.reA.bam'
 
-def recalibrate(GATKpath,dbSNPfile,ref,bam):
+def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
+   qf.write('# Recalibration of BAM using GATK-BaseRecalibrator+PrintReads'+'\n')
    bamstub=bam.replace('.bam','')
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
-   qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n')
+   #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
    return bamstub+'.recal.bam'
 
 def variant_calling_GATK(GATKpath,dbSNPfile,bam):
+   qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
    qf.write('java -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50'+'\n')  
@@ -251,7 +254,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    GATKpath='/opt/GATK/GATK2.6/'
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
-   dbSNPfile='/path/to/dbsnp/file.vcf'
+   dbSNPfile='/media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -303,7 +306,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    bam=re_align(samtoolspath,bam,ref,GATKpath)
    print(bam)
 
-   bam=recalibrate(GATKpath,dbSNPfile,ref,bam)
+   bam=recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam)
    print(bam)
 
    # variant calling
