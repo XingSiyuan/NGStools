@@ -237,7 +237,7 @@ def variant_calling_pileup(samtoolspath_v12, ref,bam):
    qf.write('# old-school variant calling using the pileup algorithm'+'\n')
    qf.write("echo 'old-school variant calling using the pileup algorithm'"+'\n')
    qf.write(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -vcf '+ref+' - >'+bamstub+'_vars-raw.txt'+'\n')
-   qf.write(r'VAR=`cat '+bamstub+'_vars-raw.txt'+r" | cut -f8 | head -100000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`"+'\n')
+   qf.write(r'VAR=`cat '+bamstub+'_vars-raw.txt'+r" | cut -f8 | head -1000000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`"+'\n')
    qf.write('let VAR=2*VAR'+'\n')
    qf.write('echo "max depth is $VAR"'+'\n')
    qf.write(samtoolspath_v12+'misc/samtools.pl varFilter -D$VAR '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'.vars-flt_final.txt'+'\n')
