@@ -76,7 +76,7 @@ def do_md5check(md5check,md5original,filenm):
 def qsub_headers():
    qf.write('#!/bin/bash'+'\n')
    qf.write('#$ -cwd'+'\n')
-   qf.write('#$ -S /bin/sh'+'\n')
+   qf.write('#$ -S /bin/bash'+'\n')
    qf.write('#$ -l h_vmem=10G'+'\n')
 
 def prepare_temp_fq_files(abgsa,archive_dir,filenm,tempdir):
@@ -220,7 +220,7 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam):
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 50'+'\n')  
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
    return bamstub+'.UG.raw.vcf'
 
 def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
@@ -228,7 +228,7 @@ def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
    qf.write("# variant calling using the mpileup function of samtools"+'\n')
    bamstub=bam.replace('.bam','')
    bcftoolspath=samtoolspath+'bcftools/'
-   qf.write(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'bcftools/vcfutils.pl varFilter -D '+maxfilterdepth+' -d '+minfilterdepth+' >'+bamstub+'.var.mpileup.flt.vcf'+'\n')
+   qf.write(samtoolspath+"samtools mpileup -C50 -ugf "+ref+' '+bam+' | '+bcftoolspath+'bcftools view -bvcg -| '+bcftoolspath+'bcftools view - | perl '+bcftoolspath+'vcfutils.pl varFilter -D '+maxfilterdepth+' -d '+minfilterdepth+' >'+bamstub+'.var.mpileup.flt.vcf'+'\n')
    return bamstub+'.var.mpileup.flt.vcf'
 
 def variant_calling_pileup(samtoolspath_v12, ref,bam):
