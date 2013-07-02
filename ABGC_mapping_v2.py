@@ -107,7 +107,7 @@ def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sam
    # BWA-mem is a new algorithm, we need to consider if this is suitable
    qf.write('# maping using the bwa-mem algorithm, including sorting of bam'+'\n')
    qf.write("echo 'start mapping using BWA-mem algorithm'"+'\n')
-   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
+   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -M -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
    qf.write(samtoolspath+'samtools view -Shb -q 10 '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
    qf.write('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
    qf.write("echo 'start sorting'"+'\n')
