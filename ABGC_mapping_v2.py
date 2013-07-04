@@ -193,9 +193,9 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    # based on Qingyuan's pipeline
    qf.write('# re-alignment using GATK-RealignmentTargetCreator+IndelRealigner'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
+   qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -nt "+str(numthreads)+" -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
 
-   qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
+   qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
    #qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n') # re-sorting does not seem needed?
    #qf.write('rm '+bamstub+'.reA.bam'+'\n')
    #qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
@@ -210,8 +210,8 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    qf.write('# Recalibration of BAM using GATK-BaseRecalibrator+PrintReads'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
    #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
    return bamstub+'.recal.bam'
@@ -220,7 +220,7 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam):
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
    return bamstub+'.UG.raw.vcf'
 
 def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
