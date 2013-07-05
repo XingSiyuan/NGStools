@@ -64,16 +64,19 @@ FSIZE=`stat --printf="%s" tmpBS01F10/BS01F10_rh.bam`; echo "size of file tmpBS01
 echo 'dedupping using samtools'
 /opt/samtools/samtools-0.1.19/samtools rmdup tmpBS01F10/BS01F10_rh.bam tmpBS01F10/BS01F10_rh.dedup_st.bam
 /opt/samtools/samtools-0.1.19/samtools index tmpBS01F10/BS01F10_rh.dedup_st.bam
+ln -s tmpBS01F10/BS01F10_rh.dedup_st.bam.bai tmpBS01F10/BS01F10_rh.dedup_st.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBS01F10/BS01F10.log; echo 'finished dedupping using samtools, produced BAM file tmpBS01F10/BS01F10_rh.dedup_st.bam: '$DATE  >>tmpBS01F10/BS01F10.log
 FSIZE=`stat --printf="%s" tmpBS01F10/BS01F10_rh.dedup_st.bam`; echo "size of file tmpBS01F10/BS01F10_rh.dedup_st.bam is "$FSIZE  >>tmpBS01F10/BS01F10.log
 # re-alignment using GATK-RealignmentTargetCreator+IndelRealigner
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -T RealignerTargetCreator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpBS01F10/BS01F10_rh.dedup_st.bam -o tmpBS01F10/BS01F10_rh.dedup_st.reA.intervals
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T IndelRealigner -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpBS01F10/BS01F10_rh.dedup_st.bam -targetIntervals tmpBS01F10/BS01F10_rh.dedup_st.reA.intervals -o tmpBS01F10/BS01F10_rh.dedup_st.reA.bam
+ln -s tmpBS01F10/BS01F10_rh.dedup_st.reA.bai tmpBS01F10/BS01F10_rh.dedup_st.reA.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBS01F10/BS01F10.log; echo 'finished re-aligning, produced BAM file tmpBS01F10/BS01F10_rh.dedup_st.reA.bam: '$DATE  >>tmpBS01F10/BS01F10.log
 FSIZE=`stat --printf="%s" tmpBS01F10/BS01F10_rh.dedup_st.reA.bam`; echo "size of file tmpBS01F10/BS01F10_rh.dedup_st.reA.bam is "$FSIZE  >>tmpBS01F10/BS01F10.log
 # Recalibration of BAM using GATK-BaseRecalibrator+PrintReads
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpBS01F10/BS01F10_rh.dedup_st.reA.bam -knownSites /media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf -o tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.grp
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T PrintReads -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpBS01F10/BS01F10_rh.dedup_st.reA.bam -BQSR tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.grp -o tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bam
+ln -s tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bai tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBS01F10/BS01F10.log; echo 'finished re-aligning, produced BAM file tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bam: '$DATE  >>tmpBS01F10/BS01F10.log
 FSIZE=`stat --printf="%s" tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bam`; echo "size of file tmpBS01F10/BS01F10_rh.dedup_st.reA.recal.bam is "$FSIZE  >>tmpBS01F10/BS01F10.log
 # old-school variant calling using the pileup algorithm
