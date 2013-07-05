@@ -79,11 +79,11 @@ def qsub_headers():
    qf.write('#$ -S /bin/bash'+'\n')
    qf.write('#$ -l h_vmem=10G'+'\n')
 
-def prepare_temp_fq_files(abgsa,archive_dir,filenm,tempdir):
-   qf.write("python fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+filenm+'\n')
+def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdir):
+   qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+filenm+'\n')
    return tempdir+filenm
 
-def trim(tempdir,seqfiles,offset):
+def trim(abgsamapping_toolpath, tempdir,seqfiles,offset):
    qf.write('# quality trimming of reads by sickle'+'\n')
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
@@ -92,8 +92,8 @@ def trim(tempdir,seqfiles,offset):
    qf.write('pigz '+stub2+'.tr'+'\n')
    if offset == 'illumina':
       qf.write('# since sequences have offset +64 we need to convert to sanger (offset +33)'+'\n')
-      qf.write('python convert_ill_to_sang.py '+stub1+'.tr.gz | gzip -c >'+stub1+'.tr.sa.gz'+'\n')
-      qf.write('python convert_ill_to_sang.py '+stub2+'.tr.gz | gzip -c >'+stub2+'.tr.sa.gz'+'\n')
+      qf.write('python '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub1+'.tr.gz | gzip -c >'+stub1+'.tr.sa.gz'+'\n')
+      qf.write('python '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub2+'.tr.gz | gzip -c >'+stub2+'.tr.sa.gz'+'\n')
       qf.write('rm '+stub1+'.tr.gz'+'\n')
       qf.write('rm '+stub2+'.tr.gz'+'\n')
       qf.write('mv '+stub1+'.tr.sa.gz '+stub1+'.tr.gz'+'\n')
@@ -195,7 +195,7 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    bamstub=bam.replace('.bam','')
    qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -nt "+str(numthreads)+" -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
 
-   qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
+   qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
    #qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n') # re-sorting does not seem needed?
    #qf.write('rm '+bamstub+'.reA.bam'+'\n')
    #qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
@@ -210,18 +210,27 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    qf.write('# Recalibration of BAM using GATK-BaseRecalibrator+PrintReads'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
+   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
    #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
    return bamstub+'.recal.bam'
 
-def variant_calling_GATK(GATKpath,dbSNPfile,bam):
+def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
+   # GATK variant calling, including annotation of dbSNP rs numbers
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
    qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
    return bamstub+'.UG.raw.vcf'
+
+def create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads):
+   # create gVCF file
+   qf.write('# Create gVCF file using modified GATK UnifiedGenotyper - parameters need tweaking'+'\n')
+   bamstub=bam.replace('.bam','')
+   qf.write(gvcftools_path+'bin/getBamAvgChromDepth.pl '+bam+' >'+bamstub+'.avgdepth.txt'+'\n')
+   qf.write('java7 -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'bin/gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
+   return bamstub+'.gvcf.gz'
 
 def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
    # based on Qingyuan's pipeline
@@ -243,6 +252,15 @@ def variant_calling_pileup(samtoolspath_v12, ref,bam):
    qf.write(samtoolspath_v12+'misc/samtools.pl varFilter -D$VAR '+bamstub+r"_vars-raw.txt | awk '($3=="+'"*"&&$6>=50)||($3!="*"&&$6>=20)'+r"' >"+bamstub+'.vars-flt_final.txt'+'\n')
    return bamstub+'.vars-flt_final.txt'
 
+def course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfile,bam,ref):
+   # doing some course nucleotide diversity calculations
+   qf.write('# course nucleotide diversity stat generator'+'\n')
+   bamstub=bam.replace('.bam','')
+   qf.write('VAR=`cat '+varfile+r" | cut -f8 | head -1000000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`"+'\n')
+   qf.write('let VAR=2*VAR'+'\n')
+   qf.write('echo "max depth is $VAR"'+'\n')
+   qf.write(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -f '+ref+r" -c - | awk '$8>4' | awk -v VAR=$VAR '$8<VAR' | perl "+abgsamapping_toolpath+"extract_stats-pileup-bins_allchroms.pl -f "+bamstub+'\n')
+
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    # print qsub header lines
    qsub_headers()
@@ -257,6 +275,9 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
    dbSNPfile='/media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf'
+   gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
+   gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
+   abgsamapping_toolpath='/opt/abgsascripts/'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -284,12 +305,12 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
       seqfiles[1]=archive[1]
       offset=check_illumina_or_sanger(abgsa+archive_dir+'/'+seqfiles[1])
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[1])
-      seqfiles[1]=prepare_temp_fq_files(abgsa,archive_dir,seqfiles[1],tempdir)
+      seqfiles[1]=prepare_temp_fq_files(abgsamapping_toolpath,abgsa,archive_dir,seqfiles[1],tempdir)
       archive = next(archives)
       seqfiles[2]=archive[1]
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[2])
-      seqfiles[2]=prepare_temp_fq_files(abgsa,archive_dir,seqfiles[2],tempdir)
-      seqfiles=trim(tempdir,seqfiles,offset)
+      seqfiles[2]=prepare_temp_fq_files(abgsamapping_toolpath,abgsa,archive_dir,seqfiles[2],tempdir)
+      seqfiles=trim(abgsamapping_toolpath,tempdir,seqfiles,offset)
       # report when mapping starts
       qf.write(firstline+"echo 'starting "+mapper+" mapping of "+sample+" archive "+str(count)+": '$DATE  >>"+logfile+'\n')
       if mapper == 'bwa-mem':
@@ -339,11 +360,14 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    # variant calling
    varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
    varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
-   varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam))
+   varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads))
+   varfiles.append(create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads))
 
    # report back when finished variant calling
    qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
    print(varfiles)
+   
+   course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfiles[0],bam,ref)
 
 if __name__=="__main__":
    # initialize db cursor
