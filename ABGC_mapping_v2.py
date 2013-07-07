@@ -245,6 +245,7 @@ def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
 
 def variant_calling_pileup(samtoolspath_v12, ref,bam):
    # based on HJM's old Mosaik/BWA pipeline
+   # currently quits without error message after having completed chrom 6 - no idea why...
    bamstub=bam.replace('.bam','')
    qf.write('# old-school variant calling using the pileup algorithm'+'\n')
    qf.write("echo 'old-school variant calling using the pileup algorithm'"+'\n')
