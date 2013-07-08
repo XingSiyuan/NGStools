@@ -187,7 +187,7 @@ def dedup_samtools(samtoolspath,bam):
    qf.write(samtoolspath+'samtools rmdup '+bamstub+'.bam '+bamstub+'.dedup_st.bam'+'\n')
    qf.write(samtoolspath+'samtools index '+bamstub+'.dedup_st.bam'+'\n')
    # consider removing original bam file
-   qf.write("ln -s "+bamstub+'.dedup_st.bam.bai '+bamstub+'.dedup_st.bai'+'\n')
+   qf.write("cp "+bamstub+'.dedup_st.bam.bai '+bamstub+'.dedup_st.bai'+'\n')
    return bamstub+'.dedup_st.bam'
  
 def re_align(samtoolspath,bam,ref,GATKpath):
@@ -205,7 +205,7 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    # Question 1: is mate information retained?
    # Do we need to add Picard's FixMateInformation?.jar ?
    # Question 2: is het really necesary to re-sort? Maybe only re-index? Couldn't find info. Investigate
-   qf.write("ln -s "+bamstub+'.reA.bai '+bamstub+'.reA.bam.bai'+'\n')
+   qf.write("cp "+bamstub+'.reA.bai '+bamstub+'.reA.bam.bai'+'\n')
    return bamstub+'.reA.bam'
 
 def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
@@ -216,7 +216,7 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
    #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
-   qf.write("ln -s "+bamstub+'.recal.bai '+bamstub+'.recal.bam.bai'+'\n')
+   qf.write("cp "+bamstub+'.recal.bai '+bamstub+'.recal.bam.bai'+'\n')
    return bamstub+'.recal.bam'
 
 def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
@@ -396,6 +396,9 @@ if __name__=="__main__":
    # invoke master subroutine
    create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check)
    qf.close()
+
+   cursor.close()
+   db.close()
 
    # optional submitting job
    #os.sys('qsub -q all.q run'+individual+'.sh') 
