@@ -39,6 +39,7 @@ def next_sequence_gzip(filename):
               lines.append(fileh.readline().decode('utf-8'))
 
            yield lines
+           lines=[]
            line = fileh.readline()[:-1].decode('utf-8')
     finally:
         fileh.close()
