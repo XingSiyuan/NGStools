@@ -1,0 +1,10 @@
+DU23M01_Duroc_rh.bam
+DU23M02_Duroc_rh.bam
+DU23M03_Duroc_rh.bam
+DU23M04_Duroc_rh.bam
+HA20U01_Hampshire_rh.bam
+HA20U02_Hampshire_rh.bam
+INDO22_Sumatra_rh.bam
+INDO26_Sbarbatus_rh.bam
+INDO33_Sumatra_rh.bam
+JQ01U02_Jiangquhai_rh.bam

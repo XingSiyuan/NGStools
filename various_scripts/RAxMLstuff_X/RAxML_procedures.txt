@@ -1,0 +1,28 @@
+# Procedure for extracting fasta from bam and do RAxML analysis ; scripts in $HOME/xchrom/SSC7
+perl extract_Xfasta.pl -f list1.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list1.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list2.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list3.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list4.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list5.txt -c Ssc10_2_7
+perl extract_Xfasta.pl -f list6.txt -c Ssc10_2_7
+FAFILES=`ls *.fa | sed 's/\.fa//'`
+for i in $FAFILES; do awk '/@Ssc10_2/,/^\+$/' $i.fq | perl -pe "s/@/>/ ; s/\+//" >$i.fa; done
+for i in $FAFILES; do echo $i; perl excise_region.pl -s $i -f $i.fa -b 24233520 -e 29799129 >>SSC7_24233520_29799129.fa; done
+/convert.sh SSC7_24233520_29799129.fa >SSC7_24233520_29799129.phy
+./raxmlHPC-PTHREADS -T 20 -N 10 -s SSC7_24233520_29799129.phy -o OM001_Warthog_Ssc10_2_7 -m GTRGAMMA -n SSC7_24233520_29799129 -p 1
+
+# concordance: per 100kb bins ; scripts in $HOME/xchrom/concordance
+for i in $FAFILES; do echo $i; perl excise_region_conc.pl -d '/home/WUR/megen002/xchrom/fastqfiles/' -z 100000 -s $i -f $i.fa -b 10000000 -e 130000000; done
+#!/bin/bash
+#$ -cwd
+#$ -S /bin/sh
+#$ -l h_vmem=10G
+perl run_RAxML.pl -b 102500000 -e 130000000 -z 100000
+
+# select good trees: this script should be merged with former
+perl run_RAxML_select.pl -b 10000000 -e 50000000 -z 100000
+
+
+# concordance
+perl node_info_chr_v1.pl -f allbest.tre -b 10 >allbestout_bin10.txt
