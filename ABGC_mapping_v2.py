@@ -60,7 +60,7 @@ def check_illumina_or_sanger(file_name):
 
 def get_info_from_db(individual):
    output=[]
-   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main where ABG_individual_id = '"+individual+"' order by lane_names_orig"
+   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main where ABG_individual_id = '"+individual+"' and num_nt >50 order by lane_names_orig"
    cursor.execute(stmt_select)
    for row in cursor.fetchall():
       output.append([row[1],row[2],row[3]])
@@ -226,7 +226,9 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
    bamstub=bam.replace('.bam','')
    # in progress   
    qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
-   return bamstub+'.UG.raw.vcf'
+   qf.write('bgzip '+bamstub+'.UG.raw.vcf'+'\n')
+   qf.write('tabix -p vcf '+bamstub+'.UG.raw.vcf.gz'+'\n')
+   return bamstub+'.UG.raw.vcf.gz'
 
 def create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads):
    # create gVCF file
@@ -234,6 +236,7 @@ def create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads):
    bamstub=bam.replace('.bam','')
    qf.write(gvcftools_path+'bin/getBamAvgChromDepth.pl '+bam+' >'+bamstub+'.avgdepth.txt'+'\n')
    qf.write('java7 -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'bin/gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
+   qf.write('tabix -p vcf '+bamstub+'.gvcf.gz'+'\n')
    return bamstub+'.gvcf.gz'
 
 def variant_calling_mpileup(bam,ref,samtoolspath,maxfilterdepth,minfilterdepth):
@@ -266,6 +269,13 @@ def course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfile,bam,ref):
    qf.write('echo "max depth is $VAR"'+'\n')
    qf.write(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -f '+ref+r" -c - | awk '$8>4' | awk -v VAR=$VAR '$8<VAR' | perl "+abgsamapping_toolpath+"extract_stats-pileup-bins_allchroms.pl -f "+bamstub+'\n')
 
+def variant_effect_predictor(varfile,VEPpath,numthreads):
+   # predicting functions using VEP
+   qf.write('# predicting function using VEP'+'\n')
+   varstub=varfile.replace('.vcf.gz','')
+   qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
+   return varstub+'.vep.txt'
+
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    # print qsub header lines
    qsub_headers()
@@ -283,6 +293,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
    gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
    abgsamapping_toolpath='/opt/abgsascripts/'
+   VEPpath='/opt/VEP/'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -372,6 +383,8 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
    print(varfiles)
    
+   # do some other stuff on the variants
+   variant_effect_predictor(varfiles[2],VEPpath,str(numthreads))
    course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfiles[0],bam,ref)
 
 if __name__=="__main__":
