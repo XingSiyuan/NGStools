@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -S /bin/bash
-#$ -l h_vmem=10G
+#$ -l h_vmem=20G
 mkdir tmpLW22F08
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'starting time: '$DATE  >>tmpLW22F08/LW22F08.log
 # archive number 1: ABGSA0189
@@ -68,19 +68,19 @@ FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.bam`; echo "size of file tmpLW22
 echo 'dedupping using samtools'
 /opt/samtools/samtools-0.1.19/samtools rmdup tmpLW22F08/LW22F08_rh.bam tmpLW22F08/LW22F08_rh.dedup_st.bam
 /opt/samtools/samtools-0.1.19/samtools index tmpLW22F08/LW22F08_rh.dedup_st.bam
-ln -s tmpLW22F08/LW22F08_rh.dedup_st.bam.bai tmpLW22F08/LW22F08_rh.dedup_st.bai
+cp tmpLW22F08/LW22F08_rh.dedup_st.bam.bai tmpLW22F08/LW22F08_rh.dedup_st.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished dedupping using samtools, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # re-alignment using GATK-RealignmentTargetCreator+IndelRealigner
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -T RealignerTargetCreator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -o tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals
 java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T IndelRealigner -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -targetIntervals tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals -o tmpLW22F08/LW22F08_rh.dedup_st.reA.bam
-ln -s tmpLW22F08/LW22F08_rh.dedup_st.reA.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.bam.bai
+cp tmpLW22F08/LW22F08_rh.dedup_st.reA.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished re-aligning, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.reA.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # Recalibration of BAM using GATK-BaseRecalibrator+PrintReads
-java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -knownSites /media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp
-java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T PrintReads -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -BQSR tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam
-ln -s tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam.bai
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -knownSites /media/InternBkp1/repos/refsdbSNP/Ssc_dbSNP138.vcf -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T PrintReads -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -BQSR tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam
+cp tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished re-aligning, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # old-school variant calling using the pileup algorithm
@@ -93,11 +93,16 @@ echo "max depth is $VAR"
 # variant calling using the mpileup function of samtools
 /opt/samtools/samtools-0.1.19/samtools mpileup -C50 -ugf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam | /opt/samtools/samtools-0.1.19/bcftools/bcftools view -bvcg -| /opt/samtools/samtools-0.1.19/bcftools/bcftools view - | perl /opt/samtools/samtools-0.1.19/bcftools/vcfutils.pl varFilter -D 20 -d 4 >tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.var.mpileup.flt.vcf
 # Variant calling using GATK UnifiedGenotyper - parameters need tweaking
-java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam --dbsnp /media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf --genotype_likelihoods_model BOTH -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam --dbsnp /media/InternBkp1/repos/refsdbSNP/Ssc_dbSNP138.vcf --genotype_likelihoods_model BOTH -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200
+bgzip tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf
+tabix -p vcf tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf.gz
 # Create gVCF file using modified GATK UnifiedGenotyper - parameters need tweaking
 /opt/gvcftools/v0.13-2-gd92e721/bin/getBamAvgChromDepth.pl tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam >tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.avgdepth.txt
-java7 -jar /opt/GATK/GATK_gVCFmod/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | /opt/gvcftools/v0.13-2-gd92e721/bin/gatk_to_gvcf --chrom-depth-file tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.avgdepth.txt | bgzip -c >tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.gvcf.gz
+java7 -Xmx8g -jar /opt/GATK/GATK_gVCFmod/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | /opt/gvcftools/v0.13-2-gd92e721/bin/gatk_to_gvcf --chrom-depth-file tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.avgdepth.txt | bgzip -c >tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.gvcf.gz
+tabix -p vcf tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.gvcf.gz
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished variant calling: '$DATE  >>tmpLW22F08/LW22F08.log
+# predicting function using VEP
+gunzip -c tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf.gz | perl /opt/VEP/variant_effect_predictor.pl --dir /opt/VEP/ --species sus_scrofa -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vep.txt --fork 4 --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite
 # course nucleotide diversity stat generator
 VAR=`cat tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.vars-flt_final.txt | cut -f8 | head -1000000 | sort | uniq -c | sed 's/^ \+//' | sed 's/ \+/\t/' | sort -k1 -nr | head -1 | cut -f2`
 let VAR=2*VAR

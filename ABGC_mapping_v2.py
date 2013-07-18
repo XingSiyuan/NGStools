@@ -78,7 +78,7 @@ def qsub_headers():
    qf.write('#!/bin/bash'+'\n')
    qf.write('#$ -cwd'+'\n')
    qf.write('#$ -S /bin/bash'+'\n')
-   qf.write('#$ -l h_vmem=10G'+'\n')
+   qf.write('#$ -l h_vmem=20G'+'\n')
 
 def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdir):
    qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+filenm+'\n')
@@ -213,8 +213,8 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    # based on Qingyuan's pipeline
    qf.write('# Recalibration of BAM using GATK-BaseRecalibrator+PrintReads'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
+   qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T BaseRecalibrator -R '+ref+' -I '+bam+' -knownSites '+dbSNPfile+' -o '+bamstub+'.recal.grp'+'\n')
+   qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nct '+str(numthreads)+' -T PrintReads -R '+ref+' -I '+bam+' -BQSR '+bamstub+'.recal.grp -o '+bamstub+'.recal.bam'+'\n')
    # consider removing original bam file
    #qf.write(samtoolspath+'samtools index '+bamstub+'.recal.bam'+'\n') # re-indexing needed?
    qf.write("cp "+bamstub+'.recal.bai '+bamstub+'.recal.bam.bai'+'\n')
@@ -225,7 +225,7 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    # in progress   
-   qf.write('java7 -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
+   qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
    qf.write('bgzip '+bamstub+'.UG.raw.vcf'+'\n')
    qf.write('tabix -p vcf '+bamstub+'.UG.raw.vcf.gz'+'\n')
    return bamstub+'.UG.raw.vcf.gz'
@@ -235,7 +235,7 @@ def create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads):
    qf.write('# Create gVCF file using modified GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
    qf.write(gvcftools_path+'bin/getBamAvgChromDepth.pl '+bam+' >'+bamstub+'.avgdepth.txt'+'\n')
-   qf.write('java7 -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'bin/gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
+   qf.write('java7 -Xmx8g -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'bin/gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
    qf.write('tabix -p vcf '+bamstub+'.gvcf.gz'+'\n')
    return bamstub+'.gvcf.gz'
 
@@ -282,6 +282,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
+   reffolder = ref.rsplit(r'/',1)[0]
    bwapath='/opt/bwa/bwa-0.7.5a/'
    samtoolspath='/opt/samtools/samtools-0.1.19/'
    samtoolspath_v12='/opt/samtools/samtools-0.1.12a/'
@@ -289,7 +290,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    GATKpath='/opt/GATK/GATK2.6/'
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
-   dbSNPfile='/media/InternBkp1/repos/dbSNP/Ssc_dbSNP138.vcf'
+   dbSNPfile=reffolder+'dbSNP/Ssc_dbSNP138.vcf'
    gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
    gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
    abgsamapping_toolpath='/opt/abgsascripts/'
