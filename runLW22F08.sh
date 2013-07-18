@@ -78,7 +78,7 @@ cp tmpLW22F08/LW22F08_rh.dedup_st.reA.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.bam
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished re-aligning, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.reA.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # Recalibration of BAM using GATK-BaseRecalibrator+PrintReads
-java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -knownSites /media/InternBkp1/repos/refsdbSNP/Ssc_dbSNP138.vcf -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T BaseRecalibrator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -knownSites /media/InternBkp1/repos/refs/dbSNP/Ssc_dbSNP138.vcf -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp
 java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nct 4 -T PrintReads -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.reA.bam -BQSR tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.grp -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam
 cp tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished re-aligning, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam: '$DATE  >>tmpLW22F08/LW22F08.log
@@ -93,7 +93,7 @@ echo "max depth is $VAR"
 # variant calling using the mpileup function of samtools
 /opt/samtools/samtools-0.1.19/samtools mpileup -C50 -ugf /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam | /opt/samtools/samtools-0.1.19/bcftools/bcftools view -bvcg -| /opt/samtools/samtools-0.1.19/bcftools/bcftools view - | perl /opt/samtools/samtools-0.1.19/bcftools/vcfutils.pl varFilter -D 20 -d 4 >tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.var.mpileup.flt.vcf
 # Variant calling using GATK UnifiedGenotyper - parameters need tweaking
-java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam --dbsnp /media/InternBkp1/repos/refsdbSNP/Ssc_dbSNP138.vcf --genotype_likelihoods_model BOTH -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -T UnifiedGenotyper -I tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.bam --dbsnp /media/InternBkp1/repos/refs/dbSNP/Ssc_dbSNP138.vcf --genotype_likelihoods_model BOTH -o tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200
 bgzip tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf
 tabix -p vcf tmpLW22F08/LW22F08_rh.dedup_st.reA.recal.UG.raw.vcf.gz
 # Create gVCF file using modified GATK UnifiedGenotyper - parameters need tweaking
