@@ -195,9 +195,9 @@ def re_align(samtoolspath,bam,ref,GATKpath):
    # based on Qingyuan's pipeline
    qf.write('# re-alignment using GATK-RealignmentTargetCreator+IndelRealigner'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write("java7 -jar "+GATKpath+"GenomeAnalysisTK.jar -nt "+str(numthreads)+" -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
+   qf.write("java7 -Xmx8g -jar "+GATKpath+"GenomeAnalysisTK.jar -nt "+str(numthreads)+" -T RealignerTargetCreator -R "+ref+" -I "+bam+" -o "+bamstub+".reA.intervals"+'\n')
 
-   qf.write("java7 -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
+   qf.write("java7 -Xmx8g -jar "+GATKpath+'GenomeAnalysisTK.jar -T IndelRealigner -R '+ref+' -I '+bam+' -targetIntervals '+bamstub+'.reA.intervals -o '+bamstub+'.reA.bam' +'\n')
    #qf.write(samtoolspath+'samtools sort '+bamstub+'.reA.bam '+bamstub+'.reA.sorted'+'\n') # re-sorting does not seem needed?
    #qf.write('rm '+bamstub+'.reA.bam'+'\n')
    #qf.write('mv '+bamstub+'.reA.sorted.bam '+bamstub+'.reA.bam'+'\n')
