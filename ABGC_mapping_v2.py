@@ -16,6 +16,7 @@ import os
 import re
 import mysql.connector
 import gzip
+import sqlite3
 
 parser = argparse.ArgumentParser( description='creates run file for automated trimming, mapping of fastq archives')
 parser.add_argument("-i", "--individual_name", help="name of individual to be mapped", nargs=1)
@@ -24,6 +25,7 @@ parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/
 parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner",type=int, default=1)
 parser.add_argument("-m", "--mapper", help="mapping method", type=str, choices=['bwa-mem','bwa-aln','mosaik'], default='bwa-mem')
 parser.add_argument("-d", "--dedup_method", help="dedup method", type=str, choices=['samtools','picard'], default='samtools')
+parser.add_argument("-s", "--species", help="species", type=str, choices=['pig','cow'], default='pig')
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 
 def next_sequence_gzip(filename):
@@ -63,6 +65,18 @@ def get_info_from_db(individual):
    stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main where ABG_individual_id = '"+individual+"' and num_nt >50 order by lane_names_orig"
    cursor.execute(stmt_select)
    for row in cursor.fetchall():
+      output.append([row[1],row[2],row[3]])
+   for archive in output:
+      yield archive
+
+def get_info_from_db_sqlite(individual,pathtosqlitedb):
+   # create table cow_schema_main (archive text not null, seq_file_name text not null primary key, animal_id text not null, md5sum_zipped text not null, tmp_inserte datetime default current_timestamp);
+   output=[]
+   #cursor = sqlite3.connect(pathtosqlitedb+'cow_schema.db')
+   cursor = sqlite3.connect('cow_schema.db')
+   stmt_select = "select animal_id, archive, seq_file_name,md5sum_zipped from cow_schema_main where animal_id = '"+individual+"' order by seq_file_name"
+   results = cursor.execute(stmt_select)
+   for row in results:
       output.append([row[1],row[2],row[3]])
    for archive in output:
       yield archive
@@ -276,7 +290,7 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
 
-def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
+def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species):
    # print qsub header lines
    qsub_headers()
 
@@ -294,6 +308,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
    gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
    abgsamapping_toolpath='/opt/abgsascripts/'
+   cowsqlitedbpath='/srv/mds01/shared/Bulls1000/'
    VEPpath='/opt/VEP/'
    maxfilterdepth=20
    minfilterdepth=4
@@ -302,7 +317,11 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
    tempdir=tempdir+'/'
     
    # get sequence info from database
-   archives=get_info_from_db(sample)
+   archives=[]
+   if species == 'pig':
+      archives=get_info_from_db(sample)
+   elif species == 'cow':
+      archives=get_info_from_db_sqlite(sample,cowsqlitedbpath)
 
    count=0
    bams=[]
@@ -390,8 +409,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check):
 
 if __name__=="__main__":
    # initialize db cursor
-   db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
-   cursor = db.cursor()
+   
    
    # get command line options
    args = parser.parse_args()
@@ -399,21 +417,28 @@ if __name__=="__main__":
    abgsa = args.path_to_abgsa[0]
    mapper=args.mapper
    numthreads=args.number_of_threads
+   species=args.species
    ref = args.path_to_reference_fasta[0]
    dedup=args.dedup_method
    md5check=args.domd5check
    print('md5check: '+str(md5check))
    print('mapper: '+mapper)
    print('dedupper: '+dedup) 
+   print('species: '+species) 
 
    # open qsub-file (qf)
    qf=open('run'+individual+'.sh','w')
    # invoke master subroutine
-   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check)
+   if species == 'pig':
+      db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
+      cursor = db.cursor()
+   
+   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species)
    qf.close()
 
-   cursor.close()
-   db.close()
+   if species == 'pig':
+      cursor.close()
+      db.close()
 
    # optional submitting job
    #os.sys('qsub -q all.q run'+individual+'.sh') 

@@ -72,8 +72,8 @@ cp tmpLW22F08/LW22F08_rh.dedup_st.bam.bai tmpLW22F08/LW22F08_rh.dedup_st.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished dedupping using samtools, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # re-alignment using GATK-RealignmentTargetCreator+IndelRealigner
-java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -T RealignerTargetCreator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -o tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals
-java7 -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T IndelRealigner -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -targetIntervals tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals -o tmpLW22F08/LW22F08_rh.dedup_st.reA.bam
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -nt 4 -T RealignerTargetCreator -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -o tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals
+java7 -Xmx8g -jar /opt/GATK/GATK2.6/GenomeAnalysisTK.jar -T IndelRealigner -R /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa -I tmpLW22F08/LW22F08_rh.dedup_st.bam -targetIntervals tmpLW22F08/LW22F08_rh.dedup_st.reA.intervals -o tmpLW22F08/LW22F08_rh.dedup_st.reA.bam
 cp tmpLW22F08/LW22F08_rh.dedup_st.reA.bai tmpLW22F08/LW22F08_rh.dedup_st.reA.bam.bai
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished re-aligning, produced BAM file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/LW22F08_rh.dedup_st.reA.bam`; echo "size of file tmpLW22F08/LW22F08_rh.dedup_st.reA.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
