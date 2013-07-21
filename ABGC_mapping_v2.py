@@ -46,19 +46,23 @@ def next_sequence_gzip(filename):
     finally:
         fileh.close()
 
+
 def check_illumina_or_sanger(file_name):
     maxQ=0
     seqs = next_sequence_gzip(file_name)
     offset='sanger'
-    for i in range(1000):
+    maxlength=0;
+    for i in range(10000):
       seq = next(seqs)
       qs = seq[3][0:-1]
+      if len(qs)>maxlength:
+         maxlength=len(qs)
       for q in qs:
         if (ord(q)-33)>maxQ:
            maxQ=ord(q)-33
     if maxQ>41:
         offset='illumina'
-    return offset
+    return offset,maxlength
 
 def get_info_from_db(individual):
    output=[]
@@ -95,10 +99,11 @@ def qsub_headers():
    qf.write('#$ -l h_vmem=20G'+'\n')
 
 def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdir):
-   qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+filenm+'\n')
-   return tempdir+filenm
+   finalfilenm=filenm.split('.gz')[0]+'.gz'
+   qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+finalfilenm+'\n')
+   return tempdir+finalfilenm
 
-def trim(abgsamapping_toolpath, tempdir,seqfiles,offset):
+def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset):
    qf.write('# quality trimming of reads by sickle'+'\n')
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
@@ -113,6 +118,20 @@ def trim(abgsamapping_toolpath, tempdir,seqfiles,offset):
       qf.write('rm '+stub2+'.tr.gz'+'\n')
       qf.write('mv '+stub1+'.tr.sa.gz '+stub1+'.tr.gz'+'\n')
       qf.write('mv '+stub2+'.tr.sa.gz '+stub2+'.tr.gz'+'\n')
+   seqfiles={}
+   seqfiles[1]=stub1+'.tr.gz'
+   seqfiles[2]=stub2+'.tr.gz'
+   return seqfiles
+
+
+def trim_bull(abgsamapping_toolpath, tempdir,seqfiles,offset,maxlength):
+   qf.write('# quality trimming of reads according to 1000 Bulls specs'+'\n')
+   stub1=seqfiles[1].replace('.gz','')
+   stub2=seqfiles[2].replace('.gz','')
+   same_change='same'
+   if offset == 'illumina':
+      same_change='change'
+   qf.write(absamapping_toolpath+'Ruffus_QC_cassava1.8only.v2.py -t '+tempdir+' -a '+same_change+' -p '+numthreads+' -n 3 -l 40 -c '+maxlength+'\n')
    seqfiles={}
    seqfiles[1]=stub1+'.tr.gz'
    seqfiles[2]=stub2+'.tr.gz'
@@ -339,14 +358,14 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species):
       qf.write("# archive number "+str(count)+": "+archive[0]+'\n')
       archive_dir=archive[0]
       seqfiles[1]=archive[1]
-      offset=check_illumina_or_sanger(abgsa+archive_dir+'/'+seqfiles[1])
+      offset,maxlength=check_illumina_or_sanger(abgsa+archive_dir+'/'+seqfiles[1])
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[1])
       seqfiles[1]=prepare_temp_fq_files(abgsamapping_toolpath,abgsa,archive_dir,seqfiles[1],tempdir)
       archive = next(archives)
       seqfiles[2]=archive[1]
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[2])
       seqfiles[2]=prepare_temp_fq_files(abgsamapping_toolpath,abgsa,archive_dir,seqfiles[2],tempdir)
-      seqfiles=trim(abgsamapping_toolpath,tempdir,seqfiles,offset)
+      seqfiles=trim_sickle(abgsamapping_toolpath,tempdir,seqfiles,offset)
       # report when mapping starts
       qf.write(firstline+"echo 'starting "+mapper+" mapping of "+sample+" archive "+str(count)+": '$DATE  >>"+logfile+'\n')
       if mapper == 'bwa-mem':

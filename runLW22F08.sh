@@ -5,23 +5,23 @@
 mkdir tmpLW22F08
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'starting time: '$DATE  >>tmpLW22F08/LW22F08.log
 # archive number 1: ABGSA0189
-python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz
-python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz
+python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz
+python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz
 # quality trimming of reads by sickle
-sickle pe -f tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz -r tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz -o tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr -p tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr -s tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.singles.tr -l 45 -t illumina
-pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr
-pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr
+sickle pe -f tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.gz -r tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.gz -o tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr -p tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr -s tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.singles.tr -l 45 -t illumina
+pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr
+pigz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr
 # since sequences have offset +64 we need to convert to sanger (offset +33)
-python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz | gzip -c >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz
-python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz | gzip -c >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz
-rm tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
-rm tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
-mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
-mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
+python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.gz | gzip -c >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.sa.gz
+python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.gz | gzip -c >tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.sa.gz
+rm tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.gz
+rm tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.gz
+mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.gz
+mv tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.sa.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.gz
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'starting bwa-mem mapping of LW22F08 archive 1: '$DATE  >>tmpLW22F08/LW22F08.log
 # maping using the bwa-mem algorithm, including sorting of bam
 echo 'start mapping using BWA-mem algorithm'
-/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -M -R '@RG\tID:ABGSA0189_1\tSM:LW22F08\tPL:ILLUMINA' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam
+/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -M -R '@RG\tID:ABGSA0189_1\tSM:LW22F08\tPL:ILLUMINA' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_1.fq.tr.gz tmpLW22F08/120423_I652_FCC0E33ACXX_L3_SZAIPI008160-111_2.fq.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam
 /opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam > tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam
 rm tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sam
 echo 'start sorting'
@@ -30,23 +30,23 @@ rm tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.bam
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'finished, produced BAM file tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sorted.bam archive 1: '$DATE  >>tmpLW22F08/LW22F08.log
 FSIZE=`stat --printf="%s" tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sorted.bam`; echo "size of file tmpLW22F08/aln-ABGSA0189-LW22F08-1-pe.sorted.bam is "$FSIZE  >>tmpLW22F08/LW22F08.log
 # archive number 2: ABGSA0189
-python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz
-python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz
+python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz
+python /opt/abgsascripts/fix_fq_names.py /media/InternBkp1/repos/ABGSA/ABGSA0189/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz | pigz >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz
 # quality trimming of reads by sickle
-sickle pe -f tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz.clean.dup.clean.gz -r tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz.clean.dup.clean.gz -o tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr -p tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr -s tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.singles.tr -l 45 -t illumina
-pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr
-pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr
+sickle pe -f tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.gz -r tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.gz -o tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr -p tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr -s tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.singles.tr -l 45 -t illumina
+pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr
+pigz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr
 # since sequences have offset +64 we need to convert to sanger (offset +33)
-python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz | gzip -c >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz
-python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz | gzip -c >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz
-rm tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
-rm tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
-mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz
-mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz
+python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.gz | gzip -c >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.sa.gz
+python /opt/abgsascripts/convert_ill_to_sang.py tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.gz | gzip -c >tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.sa.gz
+rm tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.gz
+rm tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.gz
+mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.gz
+mv tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.sa.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.gz
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpLW22F08/LW22F08.log; echo 'starting bwa-mem mapping of LW22F08 archive 2: '$DATE  >>tmpLW22F08/LW22F08.log
 # maping using the bwa-mem algorithm, including sorting of bam
 echo 'start mapping using BWA-mem algorithm'
-/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -M -R '@RG\tID:ABGSA0189_2\tSM:LW22F08\tPL:ILLUMINA' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.clean.dup.clean.tr.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.clean.dup.clean.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam
+/opt/bwa/bwa-0.7.5a/bwa mem -t 4 -M -R '@RG\tID:ABGSA0189_2\tSM:LW22F08\tPL:ILLUMINA' /media/InternBkp1/repos/refs/Sus_scrofa.Sscrofa10.2.72.dna.toplevel.fa tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_1.fq.tr.gz tmpLW22F08/120506_I224_FCC0RYYACXX_L4_SZAIPI008160-111_2.fq.tr.gz >tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam
 /opt/samtools/samtools-0.1.19/samtools view -Shb -q 10 tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam > tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.bam
 rm tmpLW22F08/aln-ABGSA0189-LW22F08-2-pe.sam
 echo 'start sorting'
