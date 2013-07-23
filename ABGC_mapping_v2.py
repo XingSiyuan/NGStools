@@ -124,18 +124,18 @@ def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset):
    return seqfiles
 
 
-def trim_bull(abgsamapping_toolpath, tempdir,seqfiles,offset,maxlength):
-   qf.write('# quality trimming of reads according to 1000 Bulls specs'+'\n')
-   stub1=seqfiles[1].replace('.gz','')
-   stub2=seqfiles[2].replace('.gz','')
-   same_change='same'
-   if offset == 'illumina':
-      same_change='change'
-   qf.write(absamapping_toolpath+'Ruffus_QC_cassava1.8only.v2.py -t '+tempdir+' -a '+same_change+' -p '+numthreads+' -n 3 -l 40 -c '+maxlength+'\n')
-   seqfiles={}
-   seqfiles[1]=stub1+'.tr.gz'
-   seqfiles[2]=stub2+'.tr.gz'
-   return seqfiles
+#def trim_bull(abgsamapping_toolpath, tempdir,seqfiles,offset,maxlength):
+#   qf.write('# quality trimming of reads according to 1000 Bulls specs'+'\n')
+#   stub1=seqfiles[1].replace('.gz','')
+#   stub2=seqfiles[2].replace('.gz','')
+#   same_change='same'
+#   if offset == 'illumina':
+#      same_change='change'
+#   qf.write(absamapping_toolpath+'Ruffus_QC_cassava1.8only.v2.py -t '+tempdir+' -a '+same_change+' -p '+numthreads+' -n 3 -l 40 -c '+maxlength+'\n')
+#   seqfiles={}
+#   seqfiles[1]=stub1+'.tr.gz'
+#   seqfiles[2]=stub2+'.tr.gz'
+#   return seqfiles
 
 def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads):
    # BWA-mem is a new algorithm, we need to consider if this is suitable
