@@ -123,7 +123,8 @@ def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset):
    seqfiles[2]=stub2+'.tr.gz'
    return seqfiles
 
-
+# unclear if I will support the 1000 Bulls default trimmer in the future
+# will depend on necesity and demand.... 
 #def trim_bull(abgsamapping_toolpath, tempdir,seqfiles,offset,maxlength):
 #   qf.write('# quality trimming of reads according to 1000 Bulls specs'+'\n')
 #   stub1=seqfiles[1].replace('.gz','')
