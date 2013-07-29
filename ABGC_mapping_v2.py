@@ -324,7 +324,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species):
    GATKpath='/opt/GATK/GATK2.6/'
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
-   dbSNPfile=reffolder+'/dbSNP/Ssc_dbSNP138.vcf'
+   dbSNPfile=reffolder+'/dbSNP/dbSNP.vcf'
    gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
    gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
    abgsamapping_toolpath='/opt/abgsascripts/'
