@@ -27,6 +27,7 @@ parser.add_argument("-m", "--mapper", help="mapping method", type=str, choices=[
 parser.add_argument("-d", "--dedup_method", help="dedup method", type=str, choices=['samtools','picard'], default='samtools')
 parser.add_argument("-s", "--species", help="species", type=str, choices=['pig','cow'], default='pig')
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
+parser.add_argument("-e", "--recalibrate", help="perform post-mapping recallibration of Qvals", action="store_true")
 
 def next_sequence_gzip(filename):
     try:
@@ -310,7 +311,7 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
 
-def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species):
+def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate):
    # print qsub header lines
    qsub_headers()
 
@@ -406,8 +407,9 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species):
    qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
    qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
 
-   bam=recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam)
-   print(bam)
+   if dorecalibrate:
+      bam=recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam)
+      print(bam)
 
    # report back when finished recalibrating, and how large file size is
    qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
@@ -441,6 +443,7 @@ if __name__=="__main__":
    ref = args.path_to_reference_fasta[0]
    dedup=args.dedup_method
    md5check=args.domd5check
+   dorecalibrate=args.recalibrate
    print('md5check: '+str(md5check))
    print('mapper: '+mapper)
    print('dedupper: '+dedup) 
@@ -453,7 +456,7 @@ if __name__=="__main__":
       db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
       cursor = db.cursor()
    
-   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species)
+   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate)
    qf.close()
 
    if species == 'pig':
