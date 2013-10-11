@@ -24,10 +24,13 @@ parser.add_argument("-a", "--path_to_abgsa", help="/path/to/abgsa/", nargs=1)
 parser.add_argument("-r", "--path_to_reference_fasta", help="/path/to/reference/ref.fa", nargs=1)
 parser.add_argument("-t", "--number_of_threads", help="number of threads to be used by aligner",type=int, default=1)
 parser.add_argument("-m", "--mapper", help="mapping method", type=str, choices=['bwa-mem','bwa-aln','mosaik'], default='bwa-mem')
+parser.add_argument("-b", "--bwa_version", help="version of BWA to use", type=str, choices=['5.9','7.5'], default='7.5')
 parser.add_argument("-d", "--dedup_method", help="dedup method", type=str, choices=['samtools','picard'], default='samtools')
 parser.add_argument("-s", "--species", help="species", type=str, choices=['pig','cow'], default='pig')
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 parser.add_argument("-e", "--recalibrate", help="perform post-mapping recallibration of Qvals", action="store_true")
+parser.add_argument("-o", "--only_do_mapping", help="only create BAM files / do the mapping only", action="store_true")
+parser.add_argument("-p", "--allowed_mismatch_proportion", help="allowed mismatch proportion for read-mapping", type=str, choices=['4','5','6','7','default'], default='default')
 
 def next_sequence_gzip(filename):
     try:
@@ -151,14 +154,18 @@ def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sam
    qf.write('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted.bam'
  
-def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads):
+def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads,mmpercentage):
    #taken from old BWA aligning pipeline from HJM
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
    qf.write('# maping using the bwa-aln algorithm, including sorting of bam'+'\n')
    qf.write("echo 'start mapping using BWA-aln algorithm'"+'\n')
-   qf.write(bwapath+'bwa aln -n 0.07 -t '+str(numthreads)+' '+ref+' '+seqfiles[1]+'  >'+stub1+'.sai'+'\n')
-   qf.write(bwapath+'bwa aln -n 0.07 -t '+str(numthreads)+' '+ref+' '+seqfiles[2]+'  >'+stub2+'.sai'+'\n')
+   if mmpercentage == 'default':
+      qf.write(bwapath+'bwa aln -t '+str(numthreads)+' '+ref+' '+seqfiles[1]+'  >'+stub1+'.sai'+'\n')
+      qf.write(bwapath+'bwa aln -t '+str(numthreads)+' '+ref+' '+seqfiles[2]+'  >'+stub2+'.sai'+'\n')
+   else:
+      qf.write(bwapath+'bwa aln -n '+mmpercentage+' -t '+str(numthreads)+' '+ref+' '+seqfiles[1]+'  >'+stub1+'.sai'+'\n')
+      qf.write(bwapath+'bwa aln -n '+mmpercentage+' -t '+str(numthreads)+' '+ref+' '+seqfiles[2]+'  >'+stub2+'.sai'+'\n')
    qf.write(bwapath+'bwa sampe -P '+ref+r" -r '@RG\tID:"+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+stub1+'.sai '+stub2+'.sai '+seqfiles[1]+' '+seqfiles[2]+' | '+samtoolspath+'samtools view -q 20 -Suh - | '+samtoolspath+'samtools sort -m 5000000000 - '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted'+'\n')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted.bam'
 
@@ -311,14 +318,19 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
 
-def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate):
+def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage):
    # print qsub header lines
    qsub_headers()
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
    reffolder = ref.rsplit(r'/',1)[0]
-   bwapath='/opt/bwa/bwa-0.7.5a/'
+
+   if bwaversion == '5.9':
+      bwapath='/opt/bwa/bwa-0.5.9/'
+   else:
+      bwapath='/opt/bwa/bwa-0.7.5a/'
+
    samtoolspath='/opt/samtools/samtools-0.1.19/'
    samtoolspath_v12='/opt/samtools/samtools-0.1.12a/'
    picardpath='/opt/picard/picard-tools-1.93/'
@@ -373,7 +385,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
       if mapper == 'bwa-mem':
          bams.append(map_bwa_mem(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads))
       elif mapper == 'bwa-aln':
-         bams.append(map_bwa_aln(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads))
+         bams.append(map_bwa_aln(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads,mmpercentage))
       elif mapper == 'mosaik':  
          bams.append(map_Mosaik(mosaikref, mosaikjump, archive_dir,str(count),tempdir,seqfiles,sample,numthreads))
 
@@ -415,19 +427,22 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
    qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
 
-   # variant calling
-   varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
-   varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
-   varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads))
-   varfiles.append(create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads))
+   if onlybams:
+      pass
+   else:
+      # variant calling
+      varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
+      varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
+      varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads))
+      varfiles.append(create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads))
 
-   # report back when finished variant calling
-   qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
-   print(varfiles)
+      # report back when finished variant calling
+      qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
+      print(varfiles)
    
-   # do some other stuff on the variants
-   variant_effect_predictor(varfiles[2],VEPpath,str(numthreads))
-   course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfiles[0],bam,ref)
+      # do some other stuff on the variants
+      variant_effect_predictor(varfiles[2],VEPpath,str(numthreads))
+      course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfiles[0],bam,ref)
 
 if __name__=="__main__":
    # initialize db cursor
@@ -438,12 +453,16 @@ if __name__=="__main__":
    individual=args.individual_name[0]
    abgsa = args.path_to_abgsa[0]
    mapper=args.mapper
+   bwaversion=args.bwa_version
    numthreads=args.number_of_threads
    species=args.species
    ref = args.path_to_reference_fasta[0]
    dedup=args.dedup_method
    md5check=args.domd5check
    dorecalibrate=args.recalibrate
+   onlybams=args.only_do_mapping
+   mmpercentage=args.allowed_mismatch_proportion
+
    print('md5check: '+str(md5check))
    print('mapper: '+mapper)
    print('dedupper: '+dedup) 
@@ -456,7 +475,7 @@ if __name__=="__main__":
       db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
       cursor = db.cursor()
    
-   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate)
+   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage)
    qf.close()
 
    if species == 'pig':
