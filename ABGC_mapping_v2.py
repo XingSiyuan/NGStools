@@ -30,7 +30,7 @@ parser.add_argument("-s", "--species", help="species", type=str, choices=['pig',
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 parser.add_argument("-e", "--recalibrate", help="perform post-mapping recallibration of Qvals", action="store_true")
 parser.add_argument("-o", "--only_do_mapping", help="only create BAM files / do the mapping only", action="store_true")
-parser.add_argument("-p", "--allowed_mismatch_proportion", help="allowed mismatch proportion for read-mapping", type=str, choices=['4','5','6','7','default'], default='default')
+parser.add_argument("-p", "--allowed_mismatch_proportion", help="allowed mismatch proportion for read-mapping", type=str, choices=['0.04','0.05','0.06','0.07','0.08','default'], default='default')
 
 def next_sequence_gzip(filename):
     try:
