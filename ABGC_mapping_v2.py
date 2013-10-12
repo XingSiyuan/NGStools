@@ -89,6 +89,16 @@ def get_info_from_db_sqlite(individual,pathtosqlitedb):
    for archive in output:
       yield archive
 
+def get_bull1K_id_from_db_sqlite(individual,pathtosqlitedb):
+   # create table bulls1K_id (animal_id text not null, bull1K_id text not null primary key, tmp_inserted datetime default current_timestamp);
+   output=[]
+   cursor = sqlite3.connect('cow_schema.db')
+   stmt_select = "select bull1K_id from bulls1K_id where animal_id = '"+individual+"'"
+   results = cursor.execute(stmt_select)
+   for row in results:
+      output.append(row[0])
+   return output[0]
+
 def do_md5check(md5check,md5original,filenm):
    if md5check:
       if md5original != os.popen('md5sum '+filenm).read().split()[0]:
@@ -107,11 +117,11 @@ def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdi
    qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+finalfilenm+'\n')
    return tempdir+finalfilenm
 
-def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset):
+def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset,minlength):
    qf.write('# quality trimming of reads by sickle'+'\n')
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
-   qf.write('sickle pe -f '+seqfiles[1]+' -r '+seqfiles[2]+' -o '+stub1+'.tr -p '+stub2+'.tr -s '+stub1+'.singles.tr -l 45 -t '+offset+'\n')
+   qf.write('sickle pe -f '+seqfiles[1]+' -r '+seqfiles[2]+' -o '+stub1+'.tr -p '+stub2+'.tr -s '+stub1+'.singles.tr -l '+minlength+' -t '+offset+'\n')
    qf.write('pigz '+stub1+'.tr'+'\n')
    qf.write('pigz '+stub2+'.tr'+'\n')
    if offset == 'illumina':
@@ -142,19 +152,19 @@ def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset):
 #   seqfiles[2]=stub2+'.tr.gz'
 #   return seqfiles
 
-def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads):
+def map_bwa_mem(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample, bamheader_samplename,numthreads):
    # BWA-mem is a new algorithm, we need to consider if this is suitable
    qf.write('# maping using the bwa-mem algorithm, including sorting of bam'+'\n')
    qf.write("echo 'start mapping using BWA-mem algorithm'"+'\n')
-   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -M -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
-   qf.write(samtoolspath+'samtools view -Shb -q 10 '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
+   qf.write(bwapath+'bwa mem -t '+str(numthreads)+' -M -R '+"'"+r'@RG\tID:'+archive_dir+'_'+index+r'\tSM:'+bamheader_samplename+r"\tPL:ILLUMINA' "+ref+' '+seqfiles[1]+' '+seqfiles[2]+' >'+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
+   qf.write(samtoolspath+'samtools view -Shb '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+' > '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
    qf.write('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sam'+'\n')
    qf.write("echo 'start sorting'"+'\n')
    qf.write(samtoolspath+'samtools sort '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted'+'\n')
    qf.write('rm '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.bam'+'\n')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'-pe.sorted.bam'
  
-def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample,numthreads,mmpercentage):
+def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sample, bamheader_samplename,numthreads,mmpercentage):
    #taken from old BWA aligning pipeline from HJM
    stub1=seqfiles[1].replace('.gz','')
    stub2=seqfiles[2].replace('.gz','')
@@ -166,7 +176,7 @@ def map_bwa_aln(bwapath, samtoolspath,archive_dir,index,ref,tempdir,seqfiles,sam
    else:
       qf.write(bwapath+'bwa aln -n '+mmpercentage+' -t '+str(numthreads)+' '+ref+' '+seqfiles[1]+'  >'+stub1+'.sai'+'\n')
       qf.write(bwapath+'bwa aln -n '+mmpercentage+' -t '+str(numthreads)+' '+ref+' '+seqfiles[2]+'  >'+stub2+'.sai'+'\n')
-   qf.write(bwapath+'bwa sampe -P '+ref+r" -r '@RG\tID:"+archive_dir+'_'+index+r'\tSM:'+sample+r"\tPL:ILLUMINA' "+stub1+'.sai '+stub2+'.sai '+seqfiles[1]+' '+seqfiles[2]+' | '+samtoolspath+'samtools view -q 20 -Suh - | '+samtoolspath+'samtools sort -m 5000000000 - '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted'+'\n')
+   qf.write(bwapath+'bwa sampe -P '+ref+r" -r '@RG\tID:"+archive_dir+'_'+index+r'\tSM:'+bamheader_samplename+r"\tPL:ILLUMINA' "+stub1+'.sai '+stub2+'.sai '+seqfiles[1]+' '+seqfiles[2]+' | '+samtoolspath+'samtools view -Suh - | '+samtoolspath+'samtools sort -m 5000000000 - '+tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted'+'\n')
    return tempdir+'aln-'+archive_dir+'-'+sample+'-'+index+'PE2.sorted.bam'
 
 def map_Mosaik(mosaikref, mosaikjump, archive_dir, index,tempdir,seqfiles,sample,numthreads):
@@ -182,11 +192,11 @@ def map_Mosaik(mosaikref, mosaikjump, archive_dir, index,tempdir,seqfiles,sample
    qf.write('rm '+tempdir+'*.dat'+'\n')
    return tempdir+'aln-'+sample+'-'+index+'_build10-sorted.bam'
 
-def merge_bams(samtoolspath, bams,sample,tempdir):
+def merge_bams(samtoolspath, bams,sample,bamheader_samplename, tempdir):
    # based on old Mosaik/BWA alignment pipeline from HJM
    if len(bams)>1:
       qf.write('#multiple bam files --> do merge'+'\n')
-      make_new_header(bams,samtoolspath,tempdir,sample)
+      make_new_header(bams,samtoolspath,tempdir,sample,bamheader_samplename)
       stub = samtoolspath+'samtools merge '+tempdir+'tmpmerged'+sample+'.bam '
       for bam in bams:
         stub = stub+bam+' '
@@ -199,13 +209,13 @@ def merge_bams(samtoolspath, bams,sample,tempdir):
    qf.write(samtoolspath+'samtools index '+tempdir+sample+'_rh.bam'+'\n')
    return tempdir+sample+'_rh.bam'
 
-def make_new_header(bams, samtoolspath,tempdir,sample):
+def make_new_header(bams, samtoolspath,tempdir,sample,bamheader_samplename):
    counter=1
    for bam in bams:
       if counter==1:
-         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' >"+tempdir+'newheader.txt'+'\n')
+         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+bamheader_samplename+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' >"+tempdir+'newheader.txt'+'\n')
       else:
-         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+sample+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' | grep @RG >>"+tempdir+'newheader.txt'+'\n')
+         qf.write(samtoolspath+'samtools view -H '+bam+r" | sed 's/SM:unknown/SM:"+bamheader_samplename+r"/'  | sed 's/PL:sanger/PL:ILLUMINA/' | grep @RG >>"+tempdir+'newheader.txt'+'\n')
       counter+=1
 
 def dedup_picard(samtoolspath,picardpath,bam):
@@ -318,13 +328,14 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
 
-def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage):
+def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence):
    # print qsub header lines
    qsub_headers()
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
    reffolder = ref.rsplit(r'/',1)[0]
+   bamheader_samplename = sample 
 
    if bwaversion == '5.9':
       bwapath='/opt/bwa/bwa-0.5.9/'
@@ -355,6 +366,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
       archives=get_info_from_db(sample)
    elif species == 'cow':
       archives=get_info_from_db_sqlite(sample,cowsqlitedbpath)
+      bamheader_samplename=get_bull1K_id_from_db_sqlite(sample,cowsqlitedbpath)
 
    count=0
    bams=[]
@@ -379,13 +391,13 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
       seqfiles[2]=archive[1]
       do_md5check(md5check,archive[2], abgsa+archive_dir+'/'+seqfiles[2])
       seqfiles[2]=prepare_temp_fq_files(abgsamapping_toolpath,abgsa,archive_dir,seqfiles[2],tempdir)
-      seqfiles=trim_sickle(abgsamapping_toolpath,tempdir,seqfiles,offset)
+      seqfiles=trim_sickle(abgsamapping_toolpath,tempdir,seqfiles,offset,minlengthsequence)
       # report when mapping starts
       qf.write(firstline+"echo 'starting "+mapper+" mapping of "+sample+" archive "+str(count)+": '$DATE  >>"+logfile+'\n')
       if mapper == 'bwa-mem':
-         bams.append(map_bwa_mem(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads))
+         bams.append(map_bwa_mem(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,bamheader_samplename,numthreads))
       elif mapper == 'bwa-aln':
-         bams.append(map_bwa_aln(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,numthreads,mmpercentage))
+         bams.append(map_bwa_aln(bwapath, samtoolspath,archive_dir,str(count),ref,tempdir,seqfiles,sample,bamheader_samplename,numthreads,mmpercentage))
       elif mapper == 'mosaik':  
          bams.append(map_Mosaik(mosaikref, mosaikjump, archive_dir,str(count),tempdir,seqfiles,sample,numthreads))
 
@@ -396,7 +408,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    qf.write("#number of bams: "+str(len(bams))+'\n') 
 
    # merge and reheader bam files  
-   bam=merge_bams(samtoolspath, bams,sample,tempdir)
+   bam=merge_bams(samtoolspath, bams,sample,bamheader_samplename,tempdir)
    print(bam)
    # report back when finished merging, and how large file size is
    qf.write(firstline+"echo 'finished merging, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
@@ -463,6 +475,8 @@ if __name__=="__main__":
    onlybams=args.only_do_mapping
    mmpercentage=args.allowed_mismatch_proportion
 
+   minlengthsequence='50'
+
    print('md5check: '+str(md5check))
    print('mapper: '+mapper)
    print('dedupper: '+dedup) 
@@ -475,7 +489,7 @@ if __name__=="__main__":
       db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
       cursor = db.cursor()
    
-   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage)
+   create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence)
    qf.close()
 
    if species == 'pig':
