@@ -3,6 +3,13 @@ import sys
 import os
 import re
 
+# python3 rename_files.py -t transtable.txt
+# where 'transtable.txt' contains the following (first 5lines):
+# 53258b1a7ca265bc04810d5fb73da5c4        bov-wur-58      run0241 bov-wur-58_AGTCAA_L005_R1_001.fastq.gz
+#404ad16f1cbc6607e55fed98f16c971f        bov-wur-58      run0241 bov-wur-58_AGTCAA_L005_R2_001.fastq.gz
+#6989f5a3aea8ff4f0ac4b4cb8c3d62dd        bov-wur-58      run0247 bov-wur-58_AGTCAA_L001_R1_001.fastq.gz
+#f3ceedc008087db21527c8e8ecde4577        bov-wur-58      run0247 bov-wur-58_AGTCAA_L001_R2_001.fastq.gz
+
 parser = argparse.ArgumentParser( description='Renames a bunch of files, creates dirs, and reorganizes files')
 parser.add_argument("-t", "--translatetable", help="translatetable", nargs=1)
 
