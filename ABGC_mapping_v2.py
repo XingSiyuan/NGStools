@@ -275,7 +275,7 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
 def coverage_stats(GATKpath,ref,bam):
    # based on Ina's code as applied to 1000Bulls project
    qf.write('# Calculate coverage statistics'+'\n')
-   qf.write('java -Xmx8G -jar '+GATKpath+'GenomeAnalysisTK.jar -T DepthOfCoverage -R '+ref+' -I '+bam+' --omitDepthOutputAtEachBase --logging_level ERROR --summaryCoverageThreshold 10 --summaryCoverageThreshold 20 --summaryCoverageThreshold 30 --summaryCoverageThreshold 40 --summaryCoverageThreshold 50 --summaryCoverageThreshold 80 --summaryCoverageThreshold 90 --summaryCoverageThreshold 100 --summaryCoverageThreshold 150 --minBaseQuality 15 --minMappingQuality 30 --start 1 --stop 1000 --nBins 999 -dt NONE -o '+bam+'.coverage'+'\n')
+   qf.write('java7 -Xmx8G -jar '+GATKpath+'GenomeAnalysisTK.jar -T DepthOfCoverage -R '+ref+' -I '+bam+' --omitDepthOutputAtEachBase --logging_level ERROR --summaryCoverageThreshold 10 --summaryCoverageThreshold 20 --summaryCoverageThreshold 30 --summaryCoverageThreshold 40 --summaryCoverageThreshold 50 --summaryCoverageThreshold 80 --summaryCoverageThreshold 90 --summaryCoverageThreshold 100 --summaryCoverageThreshold 150 --minBaseQuality 15 --minMappingQuality 30 --start 1 --stop 1000 --nBins 999 -dt NONE -o '+bam+'.coverage'+'\n')
 
 def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
    # GATK variant calling, including annotation of dbSNP rs numbers
