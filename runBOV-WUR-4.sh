@@ -2,28 +2,28 @@
 #$ -cwd
 #$ -S /bin/bash
 #$ -l h_vmem=20G
-#mkdir tmpBOV-WUR-4
+mkdir tmpBOV-WUR-4
 
-#DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBOV-WUR-4/BOV-WUR-4.log; echo 'starting time: '$DATE  >>tmpBOV-WUR-4/BOV-WUR-4.log
+DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBOV-WUR-4/BOV-WUR-4.log; echo 'starting time: '$DATE  >>tmpBOV-WUR-4/BOV-WUR-4.log
 # archive number 1: SZAIPI019133-23
-#python /opt/abgsascripts/fix_fq_names.py /srv/mds01/shared/Bulls1000/F12FPCEUHK0755_alq121122/cleandata/SZAIPI019133-23/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz.clean.dup.clean.gz | pigz >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz
-#python /opt/abgsascripts/fix_fq_names.py /srv/mds01/shared/Bulls1000/F12FPCEUHK0755_alq121122/cleandata/SZAIPI019133-23/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz.clean.dup.clean.gz | pigz >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz
+python /opt/abgsascripts/fix_fq_names.py /srv/mds01/shared/Bulls1000/F12FPCEUHK0755_alq121122/cleandata/SZAIPI019133-23/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz.clean.dup.clean.gz | pigz >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz
+python /opt/abgsascripts/fix_fq_names.py /srv/mds01/shared/Bulls1000/F12FPCEUHK0755_alq121122/cleandata/SZAIPI019133-23/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz.clean.dup.clean.gz | pigz >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz
 ## quality trimming of reads by sickle
-#sickle pe -f tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz -r tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz -o tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr -p tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr -s tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.singles.tr -l 50 -t illumina
-#pigz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr
-#pigz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr
+sickle pe -f tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.gz -r tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.gz -o tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr -p tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr -s tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.singles.tr -l 50 -t illumina
+pigz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr
+pigz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr
 # since sequences have offset +64 we need to convert to sanger (offset +33)
-#python /opt/abgsascripts/convert_ill_to_sang.py tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz | gzip -c >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sa.gz
-#python /opt/abgsascripts/convert_ill_to_sang.py tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz | gzip -c >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sa.gz
-#rm tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz
-#rm tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz
-#mv tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sa.gz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz
-#mv tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sa.gz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz
-#DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBOV-WUR-4/BOV-WUR-4.log; echo 'starting bwa-aln mapping of BOV-WUR-4 archive 1: '$DATE  >>tmpBOV-WUR-4/BOV-WUR-4.log
+python /opt/abgsascripts/convert_ill_to_sang.py tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz | gzip -c >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sa.gz
+python /opt/abgsascripts/convert_ill_to_sang.py tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz | gzip -c >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sa.gz
+rm tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz
+rm tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz
+mv tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sa.gz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz
+mv tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sa.gz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz
+DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBOV-WUR-4/BOV-WUR-4.log; echo 'starting bwa-aln mapping of BOV-WUR-4 archive 1: '$DATE  >>tmpBOV-WUR-4/BOV-WUR-4.log
 # maping using the bwa-aln algorithm, including sorting of bam
-#echo 'start mapping using BWA-aln algorithm'
-#/opt/bwa/bwa-0.5.9/bwa aln -t 12 /srv/mds01/shared/Bulls1000/UMD31/umd_3_1.fa tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz  >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sai
-#/opt/bwa/bwa-0.5.9/bwa aln -t 12 /srv/mds01/shared/Bulls1000/UMD31/umd_3_1.fa tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz  >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sai
+echo 'start mapping using BWA-aln algorithm'
+/opt/bwa/bwa-0.5.9/bwa aln -t 12 /srv/mds01/shared/Bulls1000/UMD31/umd_3_1.fa tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz  >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sai
+/opt/bwa/bwa-0.5.9/bwa aln -t 12 /srv/mds01/shared/Bulls1000/UMD31/umd_3_1.fa tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz  >tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sai
 /opt/bwa/bwa-0.5.9/bwa sampe -P /srv/mds01/shared/Bulls1000/UMD31/umd_3_1.fa -r '@RG\tID:SZAIPI019133-23_1\tSM:HOLNLDM000292559732\tPL:ILLUMINA' tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.sai tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.sai tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_1.fq.tr.gz tmpBOV-WUR-4/121205_I288_FCD1JLDACXX_L3_SZAIPI019133-23_2.fq.tr.gz | /opt/samtools/samtools-0.1.19/samtools view -Suh - | /opt/samtools/samtools-0.1.19/samtools sort -m 5000000000 - tmpBOV-WUR-4/aln-SZAIPI019133-23-BOV-WUR-4-1PE2.sorted
 DATE=`date`; echo "++++++++++++++++++++++++++++" >>tmpBOV-WUR-4/BOV-WUR-4.log; echo 'finished, produced BAM file tmpBOV-WUR-4/aln-SZAIPI019133-23-BOV-WUR-4-1PE2.sorted.bam archive 1: '$DATE  >>tmpBOV-WUR-4/BOV-WUR-4.log
 FSIZE=`stat --printf="%s" tmpBOV-WUR-4/aln-SZAIPI019133-23-BOV-WUR-4-1PE2.sorted.bam`; echo "size of file tmpBOV-WUR-4/aln-SZAIPI019133-23-BOV-WUR-4-1PE2.sorted.bam is "$FSIZE  >>tmpBOV-WUR-4/BOV-WUR-4.log
