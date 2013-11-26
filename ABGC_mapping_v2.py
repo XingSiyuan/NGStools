@@ -272,6 +272,11 @@ def recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam):
    qf.write("cp "+bamstub+'.recal.bai '+bamstub+'.recal.bam.bai'+'\n')
    return bamstub+'.recal.bam'
 
+def coverage_stats(GATKpath,ref,bam):
+   # based on Ina's code as applied to 1000Bulls project
+   qf.write('# Calculate coverage statistics'+'\n')
+   qf.write('java -Xmx8G -jar '+GATKpath+'GenomeAnalysisTK.jar -T DepthOfCoverage -R '+ref+' -I '+bam+' --omitDepthOutputAtEachBase --logging_level ERROR --summaryCoverageThreshold 10 --summaryCoverageThreshold 20 --summaryCoverageThreshold 30 --summaryCoverageThreshold 40 --summaryCoverageThreshold 50 --summaryCoverageThreshold 80 --summaryCoverageThreshold 90 --summaryCoverageThreshold 100 --summaryCoverageThreshold 150 --minBaseQuality 15 --minMappingQuality 30 --start 1 --stop 1000 --nBins 999 -dt NONE -o '+bam+'.coverage'+'\n')
+
 def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
    # GATK variant calling, including annotation of dbSNP rs numbers
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
@@ -438,6 +443,9 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    # report back when finished recalibrating, and how large file size is
    qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
    qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+
+   # calculate coverage stats
+   coverage_stats(GATKpath,ref,bam):
 
    if onlybams:
       pass
