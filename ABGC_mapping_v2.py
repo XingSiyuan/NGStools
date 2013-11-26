@@ -445,7 +445,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
 
    # calculate coverage stats
-   coverage_stats(GATKpath,ref,bam):
+   coverage_stats(GATKpath,ref,bam)
 
    if onlybams:
       pass
