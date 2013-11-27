@@ -112,9 +112,18 @@ def qsub_headers():
    qf.write('#$ -S /bin/bash'+'\n')
    qf.write('#$ -l h_vmem=20G'+'\n')
 
+def slurm_headers():
+   qf.write('#!/bin/bash'+'\n')
+   qf.write('#SBATCH --ntasks=12'+'\n')
+   qf.write('#SBATCH --output=output_%j.txt'+'\n')
+   qf.write('#SBATCH --error=error_output_%j.txt'+'\n')
+   qf.write('#SBATCH --job-name=mep_koe58'+'\n')
+   qf.write('#SBATCH --partition=research'+'\n')
+
+
 def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdir):
    finalfilenm=filenm.split('.gz')[0]+'.gz'
-   qf.write("python "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+finalfilenm+'\n')
+   qf.write("python2 "+abgsamapping_toolpath+"fix_fq_names.py "+abgsa+archive_dir+'/'+filenm+" | pigz >"+tempdir+finalfilenm+'\n')
    return tempdir+finalfilenm
 
 def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset,minlength):
@@ -126,8 +135,8 @@ def trim_sickle(abgsamapping_toolpath, tempdir,seqfiles,offset,minlength):
    qf.write('pigz '+stub2+'.tr'+'\n')
    if offset == 'illumina':
       qf.write('# since sequences have offset +64 we need to convert to sanger (offset +33)'+'\n')
-      qf.write('python '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub1+'.tr.gz | gzip -c >'+stub1+'.tr.sa.gz'+'\n')
-      qf.write('python '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub2+'.tr.gz | gzip -c >'+stub2+'.tr.sa.gz'+'\n')
+      qf.write('python2 '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub1+'.tr.gz | gzip -c >'+stub1+'.tr.sa.gz'+'\n')
+      qf.write('python2 '+abgsamapping_toolpath+'convert_ill_to_sang.py '+stub2+'.tr.gz | gzip -c >'+stub2+'.tr.sa.gz'+'\n')
       qf.write('rm '+stub1+'.tr.gz'+'\n')
       qf.write('rm '+stub2+'.tr.gz'+'\n')
       qf.write('mv '+stub1+'.tr.sa.gz '+stub1+'.tr.gz'+'\n')
@@ -335,7 +344,8 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
 
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence):
    # print qsub header lines
-   qsub_headers()
+   #qsub_headers()
+   slurm_headers()
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
@@ -343,22 +353,22 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    bamheader_samplename = sample 
 
    if bwaversion == '5.9':
-      bwapath='/opt/bwa/bwa-0.5.9/'
+      bwapath='/cm/shared/apps/WUR/ABGC/bwa/bwa-0.5.9/'
    else:
-      bwapath='/opt/bwa/bwa-0.7.5a/'
+      bwapath='/cm/shared/apps/WUR/ABGC/bwa/bwa-0.7.5a/'
 
-   samtoolspath='/opt/samtools/samtools-0.1.19/'
-   samtoolspath_v12='/opt/samtools/samtools-0.1.12a/'
-   picardpath='/opt/picard/picard-tools-1.93/'
-   GATKpath='/opt/GATK/GATK2.6/'
+   samtoolspath='/cm/shared/apps/WUR/ABGC/samtools/samtools-0.1.19/'
+   samtoolspath_v12='/cm/shared/apps/WUR/ABGC/samtools/samtools-0.1.12a/'
+   picardpath='/cm/shared/apps/WUR/ABGC/picard/picard-tools-1.93/'
+   GATKpath='/cm/shared/apps/WUR/ABGC/GATK/GATK2.6/'
    mosaikref='/path/to/mosaik/ref.dat'
    mosaikjump='/path/to/mosaikjump/ref.j15'
    dbSNPfile=reffolder+'/dbSNP/dbSNP.vcf'
-   gatk_gvcf_path='/opt/GATK/GATK_gVCFmod/'
-   gvcftools_path='/opt/gvcftools/v0.13-2-gd92e721/'
-   abgsamapping_toolpath='/opt/abgsascripts/'
+   gatk_gvcf_path='/cm/shared/apps/WUR/ABGC/GATK/GATK_gVCFmod/'
+   gvcftools_path='/cm/shared/apps/WUR/ABGC/gvcftools/v0.13-2-gd92e721/'
+   abgsamapping_toolpath='/cm/shared/apps/WUR/ABGC/abgsascripts/'
    cowsqlitedbpath='/srv/mds01/shared/Bulls1000/'
-   VEPpath='/opt/VEP/'
+   VEPpath='/cm/shared/apps/WUR/ABGC/VEP/'
    maxfilterdepth=20
    minfilterdepth=4
 
