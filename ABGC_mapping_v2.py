@@ -70,7 +70,7 @@ def check_illumina_or_sanger(file_name):
 
 def get_info_from_db(individual):
    output=[]
-   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main where ABG_individual_id = '"+individual+"' and num_nt >50 order by lane_names_orig"
+   stmt_select = "select ABG_individual_id, archive_name, lane_names_orig,md5sum_gzip from ABGSAschema_main inner join fqfile_attributes using (lane_names_orig)where ABG_individual_id = '"+individual+"' and maxlength_seq >50 order by lane_names_orig"
    cursor.execute(stmt_select)
    for row in cursor.fetchall():
       output.append([row[1],row[2],row[3]])
@@ -112,13 +112,15 @@ def qsub_headers():
    qf.write('#$ -S /bin/bash'+'\n')
    qf.write('#$ -l h_vmem=20G'+'\n')
 
-def slurm_headers():
+def slurm_headers(job_name):
    qf.write('#!/bin/bash'+'\n')
+   qf.write('#SBATCH --time=4800'+'\n')
    qf.write('#SBATCH --ntasks=12'+'\n')
    qf.write('#SBATCH --output=output_%j.txt'+'\n')
    qf.write('#SBATCH --error=error_output_%j.txt'+'\n')
-   qf.write('#SBATCH --job-name=mep_koe58'+'\n')
-   qf.write('#SBATCH --partition=research'+'\n')
+   qf.write('#SBATCH --job-name='+job_name+'\n')
+   qf.write('#SBATCH --partition=ABGC'+'\n')
+#   qf.write('#SBATCH --partition=research'+'\n')
 
 
 def prepare_temp_fq_files(abgsamapping_toolpath, abgsa,archive_dir,filenm,tempdir):
@@ -345,7 +347,7 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence):
    # print qsub header lines
    #qsub_headers()
-   slurm_headers()
+   slurm_headers(sample)
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
@@ -504,7 +506,7 @@ if __name__=="__main__":
    qf=open('run'+individual+'.sh','w')
    # invoke master subroutine
    if species == 'pig':
-      db = mysql.connector.Connect(user='anonymous',host='localhost',database='ABGSAschema', password='anonymous')
+      db = mysql.connector.Connect(user='ABGSAuser',host='scomp1095.wurnet.nl',database='ABGSAschema', password='ABGSAuser')
       cursor = db.cursor()
    
    create_shell_script(individual,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence)
