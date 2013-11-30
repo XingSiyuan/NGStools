@@ -112,10 +112,10 @@ def qsub_headers():
    qf.write('#$ -S /bin/bash'+'\n')
    qf.write('#$ -l h_vmem=20G'+'\n')
 
-def slurm_headers(job_name):
+def slurm_headers(job_name,ntasks):
    qf.write('#!/bin/bash'+'\n')
    qf.write('#SBATCH --time=4800'+'\n')
-   qf.write('#SBATCH --ntasks=12'+'\n')
+   qf.write('#SBATCH --ntasks='+str(ntasks)+'\n')
    qf.write('#SBATCH --output=output_%j.txt'+'\n')
    qf.write('#SBATCH --error=error_output_%j.txt'+'\n')
    qf.write('#SBATCH --job-name='+job_name+'\n')
@@ -216,7 +216,7 @@ def merge_bams(samtoolspath, bams,sample,bamheader_samplename, tempdir):
       qf.write('rm '+tempdir+'tmpmerged'+sample+'.bam'+'\n')
    else:
       qf.write('#only one bam file, no need for merging'+'\n')
-      qf.write(samtoolspath+'samtools reheader '+tempdir+'newheader.txt '+bam[0]+' >'+tempdir+sample+'_rh.bam'+'\n')
+      qf.write(samtoolspath+'samtools reheader '+tempdir+'newheader.txt '+bams[0]+' >'+tempdir+sample+'_rh.bam'+'\n')
    qf.write(samtoolspath+'samtools index '+tempdir+sample+'_rh.bam'+'\n')
    return tempdir+sample+'_rh.bam'
 
@@ -347,7 +347,7 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence):
    # print qsub header lines
    #qsub_headers()
-   slurm_headers(sample)
+   slurm_headers(sample,numthreads)
 
    # set a bunch of variables and paths - consider doing by config-file
    tempdir = 'tmp'+sample
