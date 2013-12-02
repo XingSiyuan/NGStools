@@ -119,7 +119,7 @@ def slurm_headers(job_name,ntasks):
    qf.write('#SBATCH --output=output_%j.txt'+'\n')
    qf.write('#SBATCH --error=error_output_%j.txt'+'\n')
    qf.write('#SBATCH --job-name='+job_name+'\n')
-   qf.write('#SBATCH --partition=ABGC'+'\n')
+   qf.write('#SBATCH --partition=research'+'\n')
 #   qf.write('#SBATCH --partition=research'+'\n')
 
 
@@ -216,6 +216,7 @@ def merge_bams(samtoolspath, bams,sample,bamheader_samplename, tempdir):
       qf.write('rm '+tempdir+'tmpmerged'+sample+'.bam'+'\n')
    else:
       qf.write('#only one bam file, no need for merging'+'\n')
+      make_new_header(bams,samtoolspath,tempdir,sample,bamheader_samplename)
       qf.write(samtoolspath+'samtools reheader '+tempdir+'newheader.txt '+bams[0]+' >'+tempdir+sample+'_rh.bam'+'\n')
    qf.write(samtoolspath+'samtools index '+tempdir+sample+'_rh.bam'+'\n')
    return tempdir+sample+'_rh.bam'
