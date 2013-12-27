@@ -114,12 +114,13 @@ def qsub_headers():
 
 def slurm_headers(job_name,ntasks):
    qf.write('#!/bin/bash'+'\n')
-   qf.write('#SBATCH --time=4800'+'\n')
+   qf.write('#SBATCH --time=10000'+'\n')
+   qf.write('#SBATCH --mem=16000'+'\n')
    qf.write('#SBATCH --ntasks='+str(ntasks)+'\n')
-   qf.write('#SBATCH --output=output_%j.txt'+'\n')
-   qf.write('#SBATCH --error=error_output_%j.txt'+'\n')
+   qf.write('#SBATCH --output=output'+job_name+'_%j.txt'+'\n')
+   qf.write('#SBATCH --error=error_output'+job_name+'_%j.txt'+'\n')
    qf.write('#SBATCH --job-name='+job_name+'\n')
-   qf.write('#SBATCH --partition=research'+'\n')
+   qf.write('#SBATCH --partition=ABGC_Research'+'\n')
 #   qf.write('#SBATCH --partition=research'+'\n')
 
 
@@ -303,8 +304,8 @@ def create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads):
    # create gVCF file
    qf.write('# Create gVCF file using modified GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
-   qf.write(gvcftools_path+'bin/getBamAvgChromDepth.pl '+bam+' >'+bamstub+'.avgdepth.txt'+'\n')
-   qf.write('java7 -Xmx8g -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'bin/gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
+   qf.write(gvcftools_path+'getBamAvgChromDepth.pl '+bam+' >'+bamstub+'.avgdepth.txt'+'\n')
+   qf.write('java7 -Xmx8g -jar '+gatk_gvcf_path+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' -glm BOTH -l OFF -stand_call_conf 20.0 -stand_emit_conf 10.0  -dcov 200  -out_mode EMIT_ALL_SITES | '+gvcftools_path+'gatk_to_gvcf --chrom-depth-file '+bamstub+'.avgdepth.txt | bgzip -c >'+bamstub+'.gvcf.gz'+'\n')
    qf.write('tabix -p vcf '+bamstub+'.gvcf.gz'+'\n')
    return bamstub+'.gvcf.gz'
 
@@ -342,8 +343,18 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    # predicting functions using VEP
    qf.write('# predicting function using VEP'+'\n')
    varstub=varfile.replace('.vcf.gz','')
-   qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+' --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
+   qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+'/cache --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
+
+def log_bam(firstline,bam,logfile):
+   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+   qf.write(r'MD5BAM=`md5sum '+bam+' | sed '+"'"+'s/ \+/\t/'+"'"+' | cut -f1`; echo "md5sum of file '+bam+' is "$MD5BAM  >>'+logfile+'\n')
+
+def log_varfile(firstline,varfile,logfile):
+   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+varfile+": '$DATE  >>"+logfile+'\n')
+   qf.write(r'FSIZE=`stat --printf="%s" '+varfile+'`; echo "size of file '+varfile+' is "$FSIZE  >>'+logfile+'\n')
+   qf.write(r'MD5VAR=`md5sum '+varfile+' | sed '+"'"+'s/ \+/\t/'+"'"+' | cut -f1`; echo "md5sum of file '+varfile+' is "$MD5VAR  >>'+logfile+'\n')
 
 def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dorecalibrate,bwaversion,onlybams,mmpercentage,minlengthsequence):
    # print qsub header lines
@@ -368,10 +379,10 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    mosaikjump='/path/to/mosaikjump/ref.j15'
    dbSNPfile=reffolder+'/dbSNP/dbSNP.vcf'
    gatk_gvcf_path='/cm/shared/apps/WUR/ABGC/GATK/GATK_gVCFmod/'
-   gvcftools_path='/cm/shared/apps/WUR/ABGC/gvcftools/v0.13-2-gd92e721/'
+   gvcftools_path='/cm/shared/apps/WUR/ABGC/gvcftools/gvcftools-0.16/bin/'
    abgsamapping_toolpath='/cm/shared/apps/WUR/ABGC/abgsascripts/'
    cowsqlitedbpath='/srv/mds01/shared/Bulls1000/'
-   VEPpath='/cm/shared/apps/WUR/ABGC/VEP/'
+   VEPpath='/cm/shared/apps/WUR/ABGC/variant_effect_predictor/VEP231213/'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -429,8 +440,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    bam=merge_bams(samtoolspath, bams,sample,bamheader_samplename,tempdir)
    print(bam)
    # report back when finished merging, and how large file size is
-   qf.write(firstline+"echo 'finished merging, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
-   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+   log_bam(firstline,bam,logfile) 
 
    # further optimization of bam files
    if dedup == 'samtools':
@@ -439,23 +449,20 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
       bam=dedup_picard(samtoolspath,picardpath,bam)
    print(bam)
    # report back when finished de-dupping, and how large file size is
-   qf.write(firstline+"echo 'finished dedupping using "+dedup+", produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
-   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+   log_bam(firstline,bam,logfile) 
 
    bam=re_align(samtoolspath,bam,ref,GATKpath)
    print(bam)
 
    # report back when finished re-aligning, and how large file size is
-   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
-   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+   log_bam(firstline,bam,logfile) 
 
    if dorecalibrate:
       bam=recalibrate(GATKpath,samtoolspath,dbSNPfile,ref,bam)
       print(bam)
 
-   # report back when finished recalibrating, and how large file size is
-   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
-   qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
+      # report back when finished recalibrating, and how large file size is
+      log_bam(firstline,bam,logfile) 
 
    # calculate coverage stats
    coverage_stats(GATKpath,ref,bam)
@@ -465,9 +472,13 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    else:
       # variant calling
       varfiles.append(variant_calling_pileup(samtoolspath_v12,ref,bam))
+      log_varfile(firstline,varfiles[-1:][0],logfile)
       varfiles.append(variant_calling_mpileup(bam,ref,samtoolspath,str(maxfilterdepth),str(minfilterdepth)))
+      log_varfile(firstline,varfiles[-1:][0],logfile)
       varfiles.append(variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads))
+      log_varfile(firstline,varfiles[-1:][0],logfile)
       varfiles.append(create_gVCF(gatk_gvcf_path, gvcftools_path, ref, bam, numthreads))
+      log_varfile(firstline,varfiles[-1:][0],logfile)
 
       # report back when finished variant calling
       qf.write(firstline+"echo 'finished variant calling: '$DATE  >>"+logfile+'\n')
