@@ -347,12 +347,12 @@ def variant_effect_predictor(varfile,VEPpath,numthreads):
    return varstub+'.vep.txt'
 
 def log_bam(firstline,bam,logfile):
-   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
+   qf.write(firstline+"echo 'Produced BAM file "+bam+": '$DATE  >>"+logfile+'\n')
    qf.write(r'FSIZE=`stat --printf="%s" '+bam+'`; echo "size of file '+bam+' is "$FSIZE  >>'+logfile+'\n')
    qf.write(r'MD5BAM=`md5sum '+bam+' | sed '+"'"+'s/ \+/\t/'+"'"+' | cut -f1`; echo "md5sum of file '+bam+' is "$MD5BAM  >>'+logfile+'\n')
 
 def log_varfile(firstline,varfile,logfile):
-   qf.write(firstline+"echo 'finished re-aligning, produced BAM file "+varfile+": '$DATE  >>"+logfile+'\n')
+   qf.write(firstline+"echo 'Produced variant file "+varfile+": '$DATE  >>"+logfile+'\n')
    qf.write(r'FSIZE=`stat --printf="%s" '+varfile+'`; echo "size of file '+varfile+' is "$FSIZE  >>'+logfile+'\n')
    qf.write(r'MD5VAR=`md5sum '+varfile+' | sed '+"'"+'s/ \+/\t/'+"'"+' | cut -f1`; echo "md5sum of file '+varfile+' is "$MD5VAR  >>'+logfile+'\n')
 
