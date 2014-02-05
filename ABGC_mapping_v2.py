@@ -26,7 +26,7 @@ parser.add_argument("-t", "--number_of_threads", help="number of threads to be u
 parser.add_argument("-m", "--mapper", help="mapping method", type=str, choices=['bwa-mem','bwa-aln','mosaik'], default='bwa-mem')
 parser.add_argument("-b", "--bwa_version", help="version of BWA to use", type=str, choices=['5.9','7.5'], default='7.5')
 parser.add_argument("-d", "--dedup_method", help="dedup method", type=str, choices=['samtools','picard'], default='samtools')
-parser.add_argument("-s", "--species", help="species", type=str, choices=['pig','cow'], default='pig')
+parser.add_argument("-s", "--species", help="species", type=str, choices=['pig','cow','chicken','turkey'], default='pig')
 parser.add_argument("-c", "--domd5check", help="check md5 integrity of sequence archive against database", action="store_true")
 parser.add_argument("-e", "--recalibrate", help="perform post-mapping recallibration of Qvals", action="store_true")
 parser.add_argument("-o", "--only_do_mapping", help="only create BAM files / do the mapping only", action="store_true")
@@ -77,7 +77,7 @@ def get_info_from_db(individual):
    for archive in output:
       yield archive
 
-def get_info_from_db_sqlite(individual,pathtosqlitedb):
+def get_info_from_db_sqlite_cow(individual):
    # create table cow_schema_main (archive text not null, seq_file_name text not null primary key, animal_id text not null, md5sum_zipped text not null, tmp_inserte datetime default current_timestamp);
    output=[]
    #cursor = sqlite3.connect(pathtosqlitedb+'cow_schema.db')
@@ -89,7 +89,7 @@ def get_info_from_db_sqlite(individual,pathtosqlitedb):
    for archive in output:
       yield archive
 
-def get_bull1K_id_from_db_sqlite(individual,pathtosqlitedb):
+def get_bull1K_id_from_db_sqlite(individual):
    # create table bulls1K_id (animal_id text not null, bull1K_id text not null primary key, tmp_inserted datetime default current_timestamp);
    output=[]
    cursor = sqlite3.connect('cow_schema.db')
@@ -98,6 +98,16 @@ def get_bull1K_id_from_db_sqlite(individual,pathtosqlitedb):
    for row in results:
       output.append(row[0])
    return output[0]
+
+def get_info_from_db_sqlite_turkey(individual):
+   output=[]
+   cursor = sqlite3.connect('turkey_schema.db')
+   stmt_select = "select animal_id, archive, seq_file_name,md5sum_zipped from turkey_schema_main where animal_id = '"+individual+"' order by seq_file_name"
+   results = cursor.execute(stmt_select)
+   for row in results:
+      output.append([row[1],row[2],row[3]])
+   for archive in output:
+      yield archive
 
 def do_md5check(md5check,md5original,filenm):
    if md5check:
@@ -294,8 +304,12 @@ def variant_calling_GATK(GATKpath,dbSNPfile,bam,numthreads):
    # GATK variant calling, including annotation of dbSNP rs numbers
    qf.write('# Variant calling using GATK UnifiedGenotyper - parameters need tweaking'+'\n')
    bamstub=bam.replace('.bam','')
-   # in progress   
-   qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
+   # in progress
+   if os.path.isfile(dbSNPfile): 
+      qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --dbsnp '+dbSNPfile+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf  -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
+   else:
+      qf.write('java7 -Xmx8g -jar '+GATKpath+'GenomeAnalysisTK.jar -nt '+str(numthreads)+' -R '+ref+' -T UnifiedGenotyper -I '+bam+' --genotype_likelihoods_model BOTH -o '+bamstub+'.UG.raw.vcf -stand_call_conf 50.0 -stand_emit_conf 10.0  -dcov 200'+'\n')  
+   
    qf.write('bgzip '+bamstub+'.UG.raw.vcf'+'\n')
    qf.write('tabix -p vcf '+bamstub+'.UG.raw.vcf.gz'+'\n')
    return bamstub+'.UG.raw.vcf.gz'
@@ -339,11 +353,14 @@ def course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfile,bam,ref):
    qf.write('echo "max depth is $VAR"'+'\n')
    qf.write(samtoolspath_v12+'samtools view -u '+bam+' | '+samtoolspath_v12+'samtools pileup -f '+ref+r" -c - | awk '$8>4' | awk -v VAR=$VAR '$8<VAR' | perl "+abgsamapping_toolpath+"extract_stats-pileup-bins_allchroms.pl -f "+bamstub+'\n')
 
-def variant_effect_predictor(varfile,VEPpath,numthreads):
+def variant_effect_predictor(varfile,VEPpath,numthreads,VEPspecies):
    # predicting functions using VEP
    qf.write('# predicting function using VEP'+'\n')
    varstub=varfile.replace('.vcf.gz','')
-   qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+'/cache --species sus_scrofa -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
+   if VEPspecies == 'meleagris_gallopavo':
+      qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+'/cache --species '+VEPspecies+' -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --coding_only --no_intergenic --offline --force_overwrite'+'\n')
+   else:
+      qf.write('gunzip -c '+varfile+' | perl '+VEPpath+'variant_effect_predictor.pl --dir '+VEPpath+'/cache --species '+VEPspecies+' -o '+varstub+'.vep.txt --fork '+numthreads+' --canonical --sift b --coding_only --no_intergenic --offline --force_overwrite'+'\n')
    return varstub+'.vep.txt'
 
 def log_bam(firstline,bam,logfile):
@@ -381,8 +398,8 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    gatk_gvcf_path='/cm/shared/apps/WUR/ABGC/GATK/GATK_gVCFmod/'
    gvcftools_path='/cm/shared/apps/WUR/ABGC/gvcftools/gvcftools-0.16/bin/'
    abgsamapping_toolpath='/cm/shared/apps/WUR/ABGC/abgsascripts/'
-   cowsqlitedbpath='/srv/mds01/shared/Bulls1000/'
    VEPpath='/cm/shared/apps/WUR/ABGC/variant_effect_predictor/VEP231213/'
+   VEPspecies='none'
    maxfilterdepth=20
    minfilterdepth=4
 
@@ -393,9 +410,17 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
    archives=[]
    if species == 'pig':
       archives=get_info_from_db(sample)
+      VEPspecies='sus_scrofa'
    elif species == 'cow':
-      archives=get_info_from_db_sqlite(sample,cowsqlitedbpath)
-      bamheader_samplename=get_bull1K_id_from_db_sqlite(sample,cowsqlitedbpath)
+      archives=get_info_from_db_sqlite_cow(sample)
+      bamheader_samplename=get_bull1K_id_from_db_sqlite(sample)
+      VEPspecies='bos_taurus'
+   elif species == 'chicken':
+      archives=get_info_from_db_sqlite_chicken(sample)
+      VEPspecies='gallus_gallus'
+   elif species == 'turkey':
+      archives=get_info_from_db_sqlite_turkey(sample)
+      VEPspecies='meleagris_gallopavo'
 
    count=0
    bams=[]
@@ -485,7 +510,7 @@ def create_shell_script(sample,abgsa,ref,mapper,numthreads,md5check,species,dore
       print(varfiles)
    
       # do some other stuff on the variants
-      variant_effect_predictor(varfiles[2],VEPpath,str(numthreads))
+      variant_effect_predictor(varfiles[2],VEPpath,str(numthreads),VEPspecies)
       course_nucdiv(abgsamapping_toolpath,samtoolspath_v12,varfiles[0],bam,ref)
 
 if __name__=="__main__":
