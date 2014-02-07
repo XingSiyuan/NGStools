@@ -127,10 +127,12 @@ def slurm_headers(job_name,ntasks):
    qf.write('#SBATCH --time=10000'+'\n')
    qf.write('#SBATCH --mem=16000'+'\n')
    qf.write('#SBATCH --ntasks='+str(ntasks)+'\n')
+   qf.write('#SBATCH --nodes=1'+'\n')
    qf.write('#SBATCH --output=output'+job_name+'_%j.txt'+'\n')
    qf.write('#SBATCH --error=error_output'+job_name+'_%j.txt'+'\n')
    qf.write('#SBATCH --job-name='+job_name+'\n')
    qf.write('#SBATCH --partition=ABGC_Research'+'\n')
+   qf.write('#SBATCH --constraint=normalmem'+'\n')
 #   qf.write('#SBATCH --partition=research'+'\n')
 
 
